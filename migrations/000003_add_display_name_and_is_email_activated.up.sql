@@ -1,0 +1,3 @@
+ALTER TABLE users 
+ADD COLUMN display_name VARCHAR(100),
+ADD COLUMN is_email_verified BOOLEAN NOT NULL DEFAULT false;
