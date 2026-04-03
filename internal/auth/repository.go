@@ -40,7 +40,7 @@ func (r *repository) GetUserByID(id string) (*models.User, error) {
 
 func (r *repository) CreateUser(user *models.User) error {
 	row := r.db.QueryRow(context.Background(),
-		"INSERT INTO users (username, password_hash, email, role) VALUES ($1, $2, $3, 'user') RETURNING id, created_at",
+		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $1, $2, $3, 'user') RETURNING id, created_at",
 		user.Username, user.PasswordHash, user.Email)
 	err := row.Scan(&user.ID, &user.CreatedAt)
 	return err

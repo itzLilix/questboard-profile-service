@@ -16,7 +16,7 @@ type User struct {
 	AvatarURL    	*string   	`json:"avatarUrl,omitempty"`
 	BannerURL    	*string   	`json:"bannerUrl,omitempty"`
 	Role         	string   	`json:"role"`
-	DisplayName  	*string		`json:"displayName,omitempty"`
+	DisplayName  	string		`json:"displayName"`
 	IsEmailVerified bool 		`json:"isEmailVerified"`
 	SessionsPlayed 	int			`json:"sessionsPlayed"`
 	SessionsHosted 	int			`json:"sessionsHosted"`
