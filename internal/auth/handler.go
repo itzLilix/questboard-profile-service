@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler interface {
@@ -111,10 +112,28 @@ func (h *handler) signup(c fiber.Ctx) error {
 
 func (h *handler) logout(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
-    h.service.Logout(refreshToken)
-    c.ClearCookie("access_token")
-    c.ClearCookie("refresh_token")
-    return c.SendStatus(fiber.StatusOK)
+    err := h.service.Logout(refreshToken)
+
+    c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Expires:  fasthttp.CookieExpireDelete,
+		HTTPOnly: true,
+		Path:     "/",
+	})
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  fasthttp.CookieExpireDelete,
+		HTTPOnly: true,
+		Path:     "/",
+	})
+
+    if err != nil {
+        return c.SendStatus(fiber.StatusInternalServerError)
+    }
+    
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func (h *handler) activate(c fiber.Ctx) error {

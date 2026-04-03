@@ -29,9 +29,7 @@ type service struct {
 }
 
 type claims struct {
-	ID       string
-	Username string
-	Role     string
+	User *models.User `json:"user"`
 	jwt.RegisteredClaims
 }
 
@@ -44,19 +42,15 @@ func (s *service) ValidateToken(tokenString string) (*models.User, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 
-	var user *models.User
-
 	if err != nil {
 		return nil, ErrInvalidToken
-	} else if claims, ok := token.Claims.(*claims); ok {
-		user, err = s.repo.GetUserByID(claims.ID)
-		if err != nil {
-			return nil, ErrUserNotFound
-		}
-	} else {
-		return nil, fmt.Errorf("unknown claims type")
 	}
-	return user, nil
+
+	if c, ok := token.Claims.(*claims); ok && c.User != nil {
+		return c.User, nil
+	}
+
+	return nil, fmt.Errorf("invalid claims")
 }
 
 func (s *service) Register(username, email, password string) (*models.User, string, string, error) {
@@ -139,13 +133,11 @@ func (s *service) Logout(refreshToken string) error {
 }
 
 func (s *service) generateAccessToken(user *models.User) (string, error) {
-	expirationTime := time.Now().Add(15 * time.Second)
+	expirationTime := time.Now().Add(15 * time.Minute)
 	secretKey := []byte(os.Getenv("JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
-		ID:       user.ID,
-		Username: user.Username,
-		Role:     user.Role,
+		User: user,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
