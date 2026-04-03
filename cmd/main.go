@@ -1,22 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/itzLilix/QuestBoard/backend/internal/auth"
+	"github.com/itzLilix/QuestBoard/backend/internal/middleware"
 	"github.com/itzLilix/QuestBoard/backend/pkg/database"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-
 func main() {
+	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}).
+		With().Timestamp().Logger()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file", err)
+		log.Fatal().Err(err).Msg("error loading .env file")
 	}
 
 	app := fiber.New()
@@ -25,26 +29,27 @@ func main() {
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Content-Type"},
 	}))
-	
+	app.Use(middleware.Logger(log.Logger))
+
 	dbURL := os.Getenv("POSTGRES_URL")
 	conn, err := database.Connect(dbURL)
 	if err != nil {
-		log.Fatal("Failed to connect to database: ", err)
+		log.Fatal().Err(err).Msg("failed to connect to database")
 	}
-	fmt.Println("Successfully connected to database")
+	log.Info().Msg("successfully connected to database")
 	defer conn.Close()
 
 	err = database.RunMigrations(os.Getenv("MIGRATE_URL"))
 	if err != nil {
-		log.Fatal("Failed to run migrations: ", err)
+		log.Fatal().Err(err).Msg("failed to run migrations")
 	}
-	fmt.Println("Migrations ran successfully")
+	log.Info().Msg("migrations ran successfully")
 
 	authRepo := auth.NewRepository(conn)
 	authService := auth.NewService(authRepo)
-	authHandler := auth.NewHandler(authService)
-	
+	authHandler := auth.NewHandler(authService, log.Logger)
+
 	authHandler.RegisterRoutes(app)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal().Err(app.Listen(":3000")).Msg("server stopped")
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
 
@@ -13,10 +14,11 @@ type Handler interface {
 
 type handler struct {
 	service Service
+	log     zerolog.Logger
 }
 
-func NewHandler(service Service) Handler {
-	return &handler{service: service}
+func NewHandler(service Service, log zerolog.Logger) Handler {
+	return &handler{service: service, log: log}
 }
 
 func (h *handler) RegisterRoutes(app *fiber.App) {
@@ -45,6 +47,7 @@ func (h *handler) login(c fiber.Ctx) error {
 				"message": "Неверная почта или пароль",
 			})
 		}
+		h.log.Error().Err(err).Str("email", req.Email).Msg("login failed")
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
@@ -88,6 +91,7 @@ func (h *handler) signup(c fiber.Ctx) error {
 				"message": "Пользователь с таким именем уже существует",
 			})
 		}
+		h.log.Error().Err(err).Str("email", req.Email).Msg("signup failed")
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
@@ -129,10 +133,11 @@ func (h *handler) logout(c fiber.Ctx) error {
 		Path:     "/",
 	})
 
-    if err != nil {
-        return c.SendStatus(fiber.StatusInternalServerError)
-    }
-    
+	if err != nil {
+		h.log.Error().Err(err).Msg("logout failed")
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
 	return c.SendStatus(fiber.StatusOK)
 }
 
@@ -148,7 +153,8 @@ func (h *handler) refresh(c fiber.Ctx) error {
 	
 	user, accessToken, refreshToken, err := h.service.RefreshTokens(oldRefreshToken)
 	if err != nil {
-		return  c.SendStatus(fiber.StatusUnauthorized)
+		h.log.Warn().Err(err).Msg("token refresh failed")
+		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
 	c.Cookie(&fiber.Cookie{
@@ -179,6 +185,7 @@ func (h *handler) restoreSession(c fiber.Ctx) error {
 
 	user, err := h.service.ValidateToken(tokenString)
 	if err != nil {
+		h.log.Warn().Err(err).Msg("session restore failed")
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
