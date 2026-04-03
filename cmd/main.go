@@ -8,7 +8,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/itzLilix/QuestBoard/backend/internal/auth"
-	"github.com/itzLilix/QuestBoard/backend/internal/games"
 	"github.com/itzLilix/QuestBoard/backend/pkg/database"
 	"github.com/joho/godotenv"
 )
@@ -45,10 +44,7 @@ func main() {
 	authService := auth.NewService(authRepo)
 	authHandler := auth.NewHandler(authService)
 	
-	gamesHandler := games.NewHandler(authService)
-	
 	authHandler.RegisterRoutes(app)
-	gamesHandler.RegisterRoutes(app)
 
 	log.Fatal(app.Listen(":3000"))
 }
