@@ -15,7 +15,6 @@ type authRepository struct {
 	db *pgxpool.Pool
 }
 
-
 func NewAuthRepository(db *pgxpool.Pool) *authRepository {
 	return &authRepository{db: db}
 }

@@ -2,19 +2,14 @@ package jwt
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/itzLilix/QuestBoard/backend/internal/models"
 )
 
 type tokenProvider struct {
 	secretKey []byte
-}
-
-type TokenClaims struct {
-	UserID string
-    Role   string
 }
 
 type claims struct {
@@ -23,9 +18,9 @@ type claims struct {
 	jwt.RegisteredClaims
 }
 
-func NewTokenProvider() *tokenProvider {
+func NewTokenProvider(secretKey []byte) *tokenProvider {
 	return &tokenProvider{
-		secretKey: []byte(os.Getenv("JWT_SECRET")),
+		secretKey: secretKey,
 	}
 }
 
@@ -44,7 +39,7 @@ func (tp *tokenProvider) GenerateToken(userID, role string) (string, error) {
 	return token.SignedString(tp.secretKey)
 }
 
-func (tp *tokenProvider) ParseToken(tokenString string) (*TokenClaims, error) {
+func (tp *tokenProvider) ParseToken(tokenString string) (*models.TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (any, error) {
 		return tp.secretKey, nil
 	})
@@ -54,7 +49,7 @@ func (tp *tokenProvider) ParseToken(tokenString string) (*TokenClaims, error) {
 	}
 
 	if c, ok := token.Claims.(*claims); ok && token.Valid {
-		return &TokenClaims{
+		return &models.TokenClaims{
 			UserID: c.UserID,
 			Role:   c.Role,
 		}, nil

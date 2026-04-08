@@ -48,7 +48,7 @@ func main() {
 	}
 	log.Info().Msg("migrations ran successfully")
 
-	tokenProvider := jwt.NewTokenProvider()
+	tokenProvider := jwt.NewTokenProvider([]byte(os.Getenv("JWT_SECRET")))
 
 	authRepo := repositories.NewAuthRepository(conn)
 	authService := useCases.NewAuthUseCase(authRepo, tokenProvider)

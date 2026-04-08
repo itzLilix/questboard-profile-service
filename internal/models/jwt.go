@@ -12,3 +12,8 @@ type RefreshToken struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 	CreatedAt time.Time `json:"createdAt"`
 }
+
+type TokenClaims struct {
+	UserID string
+    Role   string
+}

@@ -5,15 +5,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type UsersRepository interface {
-	GetUserByUsername(username string) (*models.User, error)
-}
 
 type usersRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewUsersRepository(db *pgxpool.Pool) UsersRepository {
+func NewUsersRepository(db *pgxpool.Pool) *usersRepository {
 	return &usersRepository{db: db}
 }
 

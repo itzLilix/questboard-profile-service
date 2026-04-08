@@ -2,7 +2,6 @@ package useCases
 
 import (
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
-	"github.com/itzLilix/QuestBoard/backend/pkg/jwt"
 )
 
 type AuthRepository interface {
@@ -15,7 +14,11 @@ type AuthRepository interface {
 	UpdateLastLogin(user *models.User) error
 }
 
+type UsersRepository interface {
+	GetUserByUsername(username string) (*models.User, error)
+}
+
 type TokenProvider interface{
 	GenerateToken(userID, role string) (string, error)
-	ParseToken(tokenString string) (*jwt.TokenClaims, error)
+	ParseToken(tokenString string) (*models.TokenClaims, error)
 }

@@ -98,7 +98,7 @@ func (s *authUseCase) Login(email, password string) (*models.User, string, strin
 		return nil, "", "", ErrWrongPassword
 	}
 
-	s.repo.UpdateLastLogin(user)
+	_ = s.repo.UpdateLastLogin(user)
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
