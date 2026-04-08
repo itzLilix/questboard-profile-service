@@ -1,33 +1,26 @@
-package auth
+package repositories
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-
-type Repository interface {
-	CreateUser(user *models.User) error
-	GetUserByEmail(email string) (*models.User, error)
-	GetUserByID(id string) (*models.User, error)
-	SaveRefreshToken(token *models.RefreshToken) error
-	GetRefreshTokenByPrefix(prefix string) (*models.RefreshToken, error)
-	DeleteRefreshToken(prefix string) error
-	UpdateLastLogin(user *models.User) error
-}
-
-type repository struct {
+type authRepository struct {
 	db *pgxpool.Pool
 }
 
 
-func NewRepository(db *pgxpool.Pool) Repository {
-	return &repository{db: db}
+func NewAuthRepository(db *pgxpool.Pool) *authRepository {
+	return &authRepository{db: db}
 }
 
-func (r *repository) GetUserByID(id string) (*models.User, error) {
+func (r *authRepository) GetUserByID(id string) (*models.User, error) {
 	row := r.db.QueryRow(context.Background(),
 		"SELECT * FROM users WHERE id=$1", id)
 	user := &models.User{}
@@ -38,15 +31,28 @@ func (r *repository) GetUserByID(id string) (*models.User, error) {
 	return user, nil
 }
 
-func (r *repository) CreateUser(user *models.User) error {
+func (r *authRepository) CreateUser(user *models.User) error {
 	row := r.db.QueryRow(context.Background(),
-		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $1, $2, $3, 'user') RETURNING id, created_at",
-		user.Username, user.PasswordHash, user.Email)
+		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id, created_at",
+		user.Username, user.DisplayName, user.PasswordHash, user.Email)
+
 	err := row.Scan(&user.ID, &user.CreatedAt)
-	return err
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			if strings.Contains(pgErr.ConstraintName, "username") {
+				return ErrDuplicateUsername
+			}
+			if strings.Contains(pgErr.ConstraintName, "email") {
+				return ErrDuplicateEmail
+			}
+		}
+		return fmt.Errorf("create user: %w", err)
+	}
+	return nil
 }
 
-func (r *repository) GetUserByEmail(email string) (*models.User, error) {
+func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
 	row := r.db.QueryRow(context.Background(),
 		"SELECT * FROM users WHERE email=$1", email)
 	user := &models.User{}
@@ -57,7 +63,7 @@ func (r *repository) GetUserByEmail(email string) (*models.User, error) {
 	return user, nil
 }
 
-func (r *repository) SaveRefreshToken(token *models.RefreshToken) error {
+func (r *authRepository) SaveRefreshToken(token *models.RefreshToken) error {
 	row := r.db.QueryRow(context.Background(),
 	"INSERT INTO refresh_tokens (user_id, token_prefix, token_hash, expires_at) VALUES ($1, $2, $3, $4) RETURNING id, created_at",
 	token.UserID, token.TokenPrefix, token.TokenHash, token.ExpiresAt)
@@ -65,7 +71,7 @@ func (r *repository) SaveRefreshToken(token *models.RefreshToken) error {
 	return err
 }
 
-func (r *repository) GetRefreshTokenByPrefix(prefix string) (*models.RefreshToken, error) {
+func (r *authRepository) GetRefreshTokenByPrefix(prefix string) (*models.RefreshToken, error) {
 	row := r.db.QueryRow(context.Background(),
 	"SELECT * FROM refresh_tokens WHERE token_prefix=$1", prefix)
 	token := &models.RefreshToken{}
@@ -76,12 +82,12 @@ func (r *repository) GetRefreshTokenByPrefix(prefix string) (*models.RefreshToke
 	return token, nil
 }
 
-func (r *repository) DeleteRefreshToken(prefix string) error {
+func (r *authRepository) DeleteRefreshToken(prefix string) error {
 	_, err := r.db.Exec(context.Background(), "DELETE FROM refresh_tokens WHERE token_prefix=$1", prefix)
 	return err
 }
 
-func (r *repository) UpdateLastLogin(user *models.User) error {
+func (r *authRepository) UpdateLastLogin(user *models.User) error {
 	row := r.db.QueryRow(context.Background(), "UPDATE users SET last_login = NOW() WHERE id = $1 RETURNING last_login", user.ID)
 	err := row.Scan(&user.LastLogin)
 	return err

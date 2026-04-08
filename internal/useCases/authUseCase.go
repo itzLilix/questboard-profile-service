@@ -1,4 +1,4 @@
-package auth
+package useCases
 
 import (
 	"crypto/rand"
@@ -12,20 +12,28 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Service interface {
-	Register(username, email, password string) (*models.User, string, string, error)
+// type HashProvider interface{
+// 	Hash(any) string
+// }
+
+// type TokenProvider interface{
+// 	GenerateToken(user *models.User) (string, error)
+// }
+
+type AuthUseCase interface {
+	Register(username, displayname, email, password string) (*models.User, string, string, error)
 	Login(username, password string) (*models.User, string, string, error)
 	Logout(refreshToken string) error
 	ValidateToken(tokenString string) (*models.User, error)
 	RefreshTokens(refreshToken string) (*models.User, string, string, error)
 }
 
-type service struct {
-	repo Repository
+type authUseCase struct {
+	repo AuthRepository
 }
 
 type claims struct {
@@ -33,11 +41,11 @@ type claims struct {
 	jwt.RegisteredClaims
 }
 
-func NewService(repo Repository) Service {
-	return &service{repo: repo}
+func NewAuthUseCase(repo AuthRepository) AuthUseCase {
+	return &authUseCase{repo: repo}
 }
 
-func (s *service) ValidateToken(tokenString string) (*models.User, error) {
+func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (any, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
@@ -53,7 +61,7 @@ func (s *service) ValidateToken(tokenString string) (*models.User, error) {
 	return nil, fmt.Errorf("invalid claims")
 }
 
-func (s *service) Register(username, email, password string) (*models.User, string, string, error) {
+func (s *authUseCase) Register(username, displayname, email, password string) (*models.User, string, string, error) {
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, "", "", err
@@ -61,21 +69,18 @@ func (s *service) Register(username, email, password string) (*models.User, stri
 
 	user := &models.User{
 		Username:     username,
+		DisplayName: displayname,
 		Email:        email,
 		PasswordHash: string(passwordHash),
 	}
 	err = s.repo.CreateUser(user)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			if strings.Contains(pgErr.ConstraintName, "username") {
-				return nil, "", "", ErrUsernameExists
-			}
-			if strings.Contains(pgErr.ConstraintName, "email") {
-				return nil, "", "", ErrEmailExists
-			}
+		if errors.Is(err, repositories.ErrDuplicateEmail) {
+			return nil, "", "", ErrEmailExists
+		} else if errors.Is(err, repositories.ErrDuplicateUsername) {
+			return nil, "", "", ErrUsernameExists
 		}
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("register: %w", err)
 	}
 
 	s.repo.UpdateLastLogin(user)
@@ -93,7 +98,7 @@ func (s *service) Register(username, email, password string) (*models.User, stri
 	return user, accessToken, refreshToken, nil
 }
 
-func (s *service) Login(email, password string) (*models.User, string, string, error) {
+func (s *authUseCase) Login(email, password string) (*models.User, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
 		return nil, "", "", ErrUserNotFound
@@ -119,7 +124,7 @@ func (s *service) Login(email, password string) (*models.User, string, string, e
 	return user, accessToken, refreshToken, nil
 }
 
-func (s *service) Logout(refreshToken string) error {
+func (s *authUseCase) Logout(refreshToken string) error {
 	if refreshToken == "" {
 		return nil
 	}
@@ -132,7 +137,7 @@ func (s *service) Logout(refreshToken string) error {
 	return nil
 }
 
-func (s *service) generateAccessToken(user *models.User) (string, error) {
+func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 	secretKey := []byte(os.Getenv("JWT_SECRET"))
 
@@ -146,7 +151,7 @@ func (s *service) generateAccessToken(user *models.User) (string, error) {
 	return token.SignedString(secretKey)
 }
 
-func (s *service) generateRefreshToken(user *models.User) (string, error) {
+func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
 	tokenBytes := make([]byte, 32)
 	rand.Read(tokenBytes)
 	tokenString := hex.EncodeToString(tokenBytes)
@@ -169,7 +174,7 @@ func (s *service) generateRefreshToken(user *models.User) (string, error) {
 	return tokenString, nil
 }
 
-func (s *service) RefreshTokens(clientToken string) (*models.User, string, string, error) {
+func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, string, error) {
 	prefix := clientToken[:8]
 	storedToken, err := s.repo.GetRefreshTokenByPrefix(prefix)
 	if err != nil {

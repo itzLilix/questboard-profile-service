@@ -6,8 +6,10 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
-	"github.com/itzLilix/QuestBoard/backend/internal/auth"
+	"github.com/itzLilix/QuestBoard/backend/internal/handlers"
 	"github.com/itzLilix/QuestBoard/backend/internal/middleware"
+	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
+	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
 	"github.com/itzLilix/QuestBoard/backend/pkg/database"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -45,9 +47,9 @@ func main() {
 	}
 	log.Info().Msg("migrations ran successfully")
 
-	authRepo := auth.NewRepository(conn)
-	authService := auth.NewService(authRepo)
-	authHandler := auth.NewHandler(authService, log.Logger)
+	authRepo := repositories.NewAuthRepository(conn)
+	authService := useCases.NewAuthUseCase(authRepo)
+	authHandler := handlers.NewAuthHandler(authService, log.Logger)
 
 	authHandler.RegisterRoutes(app)
 

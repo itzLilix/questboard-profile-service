@@ -1,27 +1,28 @@
-package auth
+package handlers
 
 import (
 	"errors"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
 
-type Handler interface {
+type AuthHandler interface {
 	RegisterRoutes(app *fiber.App)
 }
 
-type handler struct {
-	service Service
+type authHandler struct {
+	useCase useCases.AuthUseCase
 	log     zerolog.Logger
 }
 
-func NewHandler(service Service, log zerolog.Logger) Handler {
-	return &handler{service: service, log: log}
+func NewAuthHandler(useCase useCases.AuthUseCase, log zerolog.Logger) AuthHandler {
+	return &authHandler{useCase: useCase, log: log}
 }
 
-func (h *handler) RegisterRoutes(app *fiber.App) {
+func (h *authHandler) RegisterRoutes(app *fiber.App) {
 	auth := app.Group("/auth")
 	auth.Post("/login", h.login)
 	auth.Post("/signup", h.signup)
@@ -31,7 +32,7 @@ func (h *handler) RegisterRoutes(app *fiber.App) {
 	auth.Get("/me", h.restoreSession)
 }
 
-func (h *handler) login(c fiber.Ctx) error {
+func (h *authHandler) login(c fiber.Ctx) error {
 	type request struct {
 		Email string `json:"email"`
 		Password string `json:"password"`
@@ -40,9 +41,9 @@ func (h *handler) login(c fiber.Ctx) error {
 	if err := c.Bind().Body(&req); err != nil {
 		return err
 	}
-	user, accessToken, refreshToken, err := h.service.Login(req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.useCase.Login(req.Email, req.Password)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) || errors.Is(err, ErrWrongPassword) {
+		if errors.Is(err, useCases.ErrUserNotFound) || errors.Is(err, useCases.ErrWrongPassword) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"message": "Неверная почта или пароль",
 			})
@@ -70,9 +71,10 @@ func (h *handler) login(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(user)
 }
 
-func (h *handler) signup(c fiber.Ctx) error {
+func (h *authHandler) signup(c fiber.Ctx) error {
 	type request struct {
 		Username string `json:"username"`
+		DisplayName string `json:"displayName"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -80,13 +82,14 @@ func (h *handler) signup(c fiber.Ctx) error {
 	if err := c.Bind().Body(&req); err != nil {
         return err
     }
-	user, accessToken, refreshToken, err := h.service.Register(req.Username, req.Email, req.Password)
+
+	user, accessToken, refreshToken, err := h.useCase.Register(req.Username, req.DisplayName, req.Email, req.Password)
 	if err != nil {
-		if errors.Is(err, ErrEmailExists) {
+		if errors.Is(err, useCases.ErrEmailExists) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 				"message": "Почта уже зарегестрирована",
 			})
-		} else if errors.Is(err, ErrUsernameExists) {
+		} else if errors.Is(err, useCases.ErrUsernameExists) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 				"message": "Пользователь с таким именем уже существует",
 			})
@@ -114,9 +117,9 @@ func (h *handler) signup(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(user)
 }
 
-func (h *handler) logout(c fiber.Ctx) error {
+func (h *authHandler) logout(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
-    err := h.service.Logout(refreshToken)
+    err := h.useCase.Logout(refreshToken)
 
     c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
@@ -141,17 +144,17 @@ func (h *handler) logout(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-func (h *handler) activate(c fiber.Ctx) error {
+func (h *authHandler) activate(c fiber.Ctx) error {
 	return nil;
 }
 
-func (h *handler) refresh(c fiber.Ctx) error {
+func (h *authHandler) refresh(c fiber.Ctx) error {
 	oldRefreshToken := c.Cookies("refresh_token")
 	if oldRefreshToken == "" {
     	return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	
-	user, accessToken, refreshToken, err := h.service.RefreshTokens(oldRefreshToken)
+	user, accessToken, refreshToken, err := h.useCase.RefreshTokens(oldRefreshToken)
 	if err != nil {
 		h.log.Warn().Err(err).Msg("token refresh failed")
 		return c.SendStatus(fiber.StatusUnauthorized)
@@ -176,14 +179,14 @@ func (h *handler) refresh(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(user)
 }
 
-func (h *handler) restoreSession(c fiber.Ctx) error {
+func (h *authHandler) restoreSession(c fiber.Ctx) error {
 	tokenString := c.Cookies("access_token")
 
 	if tokenString == "" {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	user, err := h.service.ValidateToken(tokenString)
+	user, err := h.useCase.ValidateToken(tokenString)
 	if err != nil {
 		h.log.Warn().Err(err).Msg("session restore failed")
 		return c.SendStatus(fiber.StatusUnauthorized)

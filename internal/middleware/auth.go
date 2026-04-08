@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/itzLilix/QuestBoard/backend/internal/auth"
+	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
 	"github.com/rs/zerolog"
 )
 
-func Protected(service auth.Service, log zerolog.Logger) fiber.Handler {
+func Protected(service useCases.AuthUseCase, log zerolog.Logger) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		token := c.Cookies("access_token")
 		if token == "" {
