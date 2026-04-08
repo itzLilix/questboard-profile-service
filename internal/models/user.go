@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 type User struct {
@@ -22,23 +20,4 @@ type User struct {
 	SessionsHosted 	int			`json:"sessionsHosted"`
 	Rating 			float64		`json:"rating"`
 	ReviewsCount    int			`json:"reviewsCount"`
-}
-
-func ScanUser(row pgx.Row, user *User) error{
-	return row.Scan(
-		&user.ID, 
-		&user.Username, 
-		&user.PasswordHash, 
-		&user.Email, 
-		&user.CreatedAt, 
-		&user.LastLogin, 
-		&user.AvatarURL, 
-		&user.BannerURL, 
-		&user.Role, 
-		&user.DisplayName, 
-		&user.IsEmailVerified,
-		&user.SessionsPlayed,
-		&user.SessionsHosted,
-		&user.Rating,
-		&user.ReviewsCount)
 }

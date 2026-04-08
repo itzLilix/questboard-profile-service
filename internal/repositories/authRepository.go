@@ -24,7 +24,7 @@ func (r *authRepository) GetUserByID(id string) (*models.User, error) {
 	row := r.db.QueryRow(context.Background(),
 		"SELECT * FROM users WHERE id=$1", id)
 	user := &models.User{}
-	err := models.ScanUser(row, user)
+	err := scanUser(row, user)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
 	row := r.db.QueryRow(context.Background(),
 		"SELECT * FROM users WHERE email=$1", email)
 	user := &models.User{}
-	err := models.ScanUser(row, user)
+	err := scanUser(row, user)
 	if err != nil {
 		return nil, err
 	}

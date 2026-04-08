@@ -6,11 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
 	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
 	"golang.org/x/crypto/bcrypt"
@@ -20,9 +18,6 @@ import (
 // 	Hash(any) string
 // }
 
-// type TokenProvider interface{
-// 	GenerateToken(user *models.User) (string, error)
-// }
 
 type AuthUseCase interface {
 	Register(username, displayname, email, password string) (*models.User, string, string, error)
@@ -34,31 +29,25 @@ type AuthUseCase interface {
 
 type authUseCase struct {
 	repo AuthRepository
+	tokenProvider TokenProvider
 }
 
-type claims struct {
-	User *models.User `json:"user"`
-	jwt.RegisteredClaims
-}
-
-func NewAuthUseCase(repo AuthRepository) AuthUseCase {
-	return &authUseCase{repo: repo}
+func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider) AuthUseCase {
+	return &authUseCase{repo: repo, tokenProvider: tokenProvider}
 }
 
 func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (any, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-
+	claims, err := s.tokenProvider.ParseToken(tokenString)
 	if err != nil {
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("validateToken: %w", err)
 	}
 
-	if c, ok := token.Claims.(*claims); ok && c.User != nil {
-		return c.User, nil
+	user, err := s.repo.GetUserByID(claims.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("validateToken: %w", err)
 	}
 
-	return nil, fmt.Errorf("invalid claims")
+	return user, nil
 }
 
 func (s *authUseCase) Register(username, displayname, email, password string) (*models.User, string, string, error) {
@@ -138,17 +127,12 @@ func (s *authUseCase) Logout(refreshToken string) error {
 }
 
 func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
-	expirationTime := time.Now().Add(15 * time.Minute)
-	secretKey := []byte(os.Getenv("JWT_SECRET"))
+	token, err := s.tokenProvider.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		return "", fmt.Errorf("generateAccessToken: %w", err)
+	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
-		User: user,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
-	})
-
-	return token.SignedString(secretKey)
+	return token, nil
 }
 
 func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
