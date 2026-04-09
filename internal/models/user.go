@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+type Role string
+
+const (
+	UserRole  Role = "user"
+	AdminRole Role = "admin"
+)
+
 type User struct {
 	ID           	string   	`json:"id"`
 	Username     	string   	`json:"username"`
@@ -13,7 +20,7 @@ type User struct {
 	LastLogin    	*time.Time  `json:"lastLogin,omitempty"`
 	AvatarURL    	*string   	`json:"avatarUrl,omitempty"`
 	BannerURL    	*string   	`json:"bannerUrl,omitempty"`
-	Role         	string   	`json:"role"`
+	Role         	Role   		`json:"role"`
 	DisplayName  	string		`json:"displayName"`
 	IsEmailVerified bool 		`json:"isEmailVerified"`
 	SessionsPlayed 	int			`json:"sessionsPlayed"`

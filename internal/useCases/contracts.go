@@ -1,6 +1,8 @@
 package useCases
 
 import (
+	"time"
+
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
 )
 
@@ -19,8 +21,8 @@ type UsersRepository interface {
 }
 
 type TokenProvider interface{
-	GenerateAccessToken(userID, role string) (string, error)
-	GenerateRefreshToken() (string, string, error)
+	GenerateAccessToken(userID string, role models.Role) (string, error)
+	GenerateRefreshToken() (string, string, time.Time, error)
 	ParseToken(tokenString string) (*models.TokenClaims, error)
 	IsRefreshTokenValid(clientToken, storedTokenHash string) bool
 }

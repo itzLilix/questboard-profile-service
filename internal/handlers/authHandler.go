@@ -18,6 +18,11 @@ type authHandler struct {
 	log     zerolog.Logger
 }
 
+const (
+	accessCookie = "access_token"
+	refreshCookie = "refresh_token"
+)
+
 func NewAuthHandler(useCase useCases.AuthUseCase, log zerolog.Logger) AuthHandler {
 	return &authHandler{useCase: useCase, log: log}
 }
@@ -52,21 +57,7 @@ func (h *authHandler) login(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
+	h.setAuthCookies(c, accessToken, refreshToken)
 
 	return c.Status(fiber.StatusOK).JSON(user)
 }
@@ -98,21 +89,7 @@ func (h *authHandler) signup(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
+	h.setAuthCookies(c, accessToken, refreshToken)
 
 	return c.Status(fiber.StatusCreated).JSON(user)
 }
@@ -121,20 +98,7 @@ func (h *authHandler) logout(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
     err := h.useCase.Logout(refreshToken)
 
-    c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		Expires:  fasthttp.CookieExpireDelete,
-		HTTPOnly: true,
-		Path:     "/",
-	})
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Expires:  fasthttp.CookieExpireDelete,
-		HTTPOnly: true,
-		Path:     "/",
-	})
+	h.clearAuthCookies(c)
 
 	if err != nil {
 		h.log.Error().Err(err).Msg("logout failed")
@@ -160,21 +124,7 @@ func (h *authHandler) refresh(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
+	h.setAuthCookies(c, accessToken, refreshToken)
 
 	return c.Status(fiber.StatusOK).JSON(user)
 }
@@ -193,4 +143,44 @@ func (h *authHandler) restoreSession(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(user)
+}
+
+func (h *authHandler) setAuthCookies(c fiber.Ctx, accessToken, refreshToken string) {
+	c.Cookie(&fiber.Cookie{
+        Name:     accessCookie,
+        Value:    accessToken,
+        Path:     "/",
+        HTTPOnly: true,
+        Secure:   true,
+        SameSite: "Strict",
+    })
+    c.Cookie(&fiber.Cookie{
+        Name:     refreshCookie,
+        Value:    refreshToken,
+        Path:     "/",
+        HTTPOnly: true,
+        Secure:   true,
+        SameSite: "Strict",
+    })
+}
+
+func (h *authHandler) clearAuthCookies(c fiber.Ctx) {
+    c.Cookie(&fiber.Cookie{
+        Name:     accessCookie,
+        Value:    "",
+        Path:     "/",
+        Expires:  fasthttp.CookieExpireDelete,
+        HTTPOnly: true,
+        Secure:   true,
+        SameSite: "Strict",
+    })
+    c.Cookie(&fiber.Cookie{
+        Name:     refreshCookie,
+        Value:    "",
+        Path:     "/",
+        Expires:  fasthttp.CookieExpireDelete,
+        HTTPOnly: true,
+        Secure:   true,
+        SameSite: "Strict",
+    })
 }

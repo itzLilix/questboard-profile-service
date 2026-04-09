@@ -15,5 +15,5 @@ type RefreshToken struct {
 
 type TokenClaims struct {
 	UserID string
-    Role   string
+    Role   Role
 }

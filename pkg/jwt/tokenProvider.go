@@ -3,9 +3,9 @@ package jwt
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,9 +18,15 @@ type tokenProvider struct {
 
 type claims struct {
 	UserID string `json:"user_id"`
-    Role   string `json:"role"`
+    Role   models.Role `json:"role"`
 	jwt.RegisteredClaims
 }
+
+const (
+	refreshTokenLength = 32
+	accessTokenTTL = time.Minute * 15
+	refreshTokenTTL = time.Hour * 24 * 30
+)
 
 func NewTokenProvider(secretKey []byte) *tokenProvider {
 	return &tokenProvider{
@@ -28,8 +34,8 @@ func NewTokenProvider(secretKey []byte) *tokenProvider {
 	}
 }
 
-func (tp *tokenProvider) GenerateAccessToken(userID, role string) (string, error) {
-	expirationTime := time.Now().Add(15 * time.Minute)
+func (tp *tokenProvider) GenerateAccessToken(userID string, role models.Role) (string, error) {
+	expirationTime := time.Now().Add(accessTokenTTL)
 	
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		UserID: userID,
@@ -42,18 +48,18 @@ func (tp *tokenProvider) GenerateAccessToken(userID, role string) (string, error
 	return token.SignedString(tp.secretKey)
 }
 
-func (tp *tokenProvider) GenerateRefreshToken() (string, string, error) {
-	tokenBytes := make([]byte, 32)
+func (tp *tokenProvider) GenerateRefreshToken() (string, string, time.Time, error) {
+	tokenBytes := make([]byte, refreshTokenLength)
 	n, err := rand.Read(tokenBytes)
 	if err != nil || n != len(tokenBytes) {
-		return "", "", fmt.Errorf("generateRefreshToken: %w", err)
+		return "", "", time.Time{}, fmt.Errorf("generateRefreshToken: %w", err)
 	}
 	tokenString := hex.EncodeToString(tokenBytes)
 
 	hash := sha256.Sum256([]byte(tokenString))
 	hashString := hex.EncodeToString(hash[:])
 
-	return tokenString, hashString,nil
+	return tokenString, hashString, time.Now().Add(refreshTokenTTL), nil
 }
 
 func (tp *tokenProvider) ParseToken(tokenString string) (*models.TokenClaims, error) {
@@ -79,8 +85,5 @@ func (tp *tokenProvider) IsRefreshTokenValid(clientToken, storedTokenHash string
 	clientHashBytes := sha256.Sum256([]byte(clientToken))
 	clientHash := hex.EncodeToString(clientHashBytes[:])
 
-	if !strings.EqualFold(storedTokenHash, clientHash) {
-		return false
-	}
-	return true
+	return subtle.ConstantTimeCompare([]byte(clientHash), []byte(storedTokenHash)) == 1
 }

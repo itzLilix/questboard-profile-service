@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,8 +33,8 @@ func (r *authRepository) GetUserByID(id string) (*models.User, error) {
 
 func (r *authRepository) CreateUser(user *models.User) error {
 	row := r.db.QueryRow(context.Background(),
-		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id, created_at",
-		user.Username, user.DisplayName, user.PasswordHash, user.Email)
+		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at",
+		user.Username, user.DisplayName, user.PasswordHash, user.Email, models.UserRole)
 
 	err := row.Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
@@ -56,9 +57,12 @@ func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
 		"SELECT * FROM users WHERE email=$1", email)
 	user := &models.User{}
 	err := scanUser(row, user)
-	if err != nil {
-		return nil, err
-	}
+	if errors.Is(err, pgx.ErrNoRows) {
+        return nil, ErrUserNotFound
+    }
+    if err != nil {
+        return nil, fmt.Errorf("get user by email: %w", err)
+    }
 	return user, nil
 }
 

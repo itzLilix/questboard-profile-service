@@ -11,6 +11,11 @@ type TokenParser interface {
     ParseToken(tokenString string) (*models.TokenClaims, error)
 }
 
+const (
+    LocalsUserID   = "userID"
+    LocalsUserRole = "userRole"
+)
+
 func Protected(parser TokenParser, log zerolog.Logger) fiber.Handler {
     return func(c fiber.Ctx) error {
         token := c.Cookies("access_token")
@@ -22,8 +27,8 @@ func Protected(parser TokenParser, log zerolog.Logger) fiber.Handler {
             log.Warn().Err(err).Str("path", c.Path()).Msg("unauthorized")
             return c.SendStatus(fiber.StatusUnauthorized)
         }
-        c.Locals("userID", claims.UserID)
-        c.Locals("userRole", claims.Role)
+        c.Locals(LocalsUserID, claims.UserID)
+        c.Locals(LocalsUserRole, claims.Role)
         return c.Next()
     }
 }

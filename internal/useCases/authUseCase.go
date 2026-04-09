@@ -23,6 +23,10 @@ type authUseCase struct {
 	passwordHasher PasswordHasher
 }
 
+const (
+	refreshTokenPrefixLength = 8
+)
+
 func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider, passwordHasher PasswordHasher) AuthUseCase {
 	return &authUseCase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
 }
@@ -30,12 +34,12 @@ func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider, passwordHa
 func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
 	claims, err := s.tokenProvider.ParseToken(tokenString)
 	if err != nil {
-		return nil, fmt.Errorf("validateToken: %w", err)
+		return nil, fmt.Errorf("validateToken: parse token: %w", err)
 	}
 
 	user, err := s.repo.GetUserByID(claims.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("validateToken: %w", err)
+		return nil, fmt.Errorf("validateToken: get user: %w", err)
 	}
 
 	return user, nil
@@ -44,7 +48,7 @@ func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
 func (s *authUseCase) Register(username, displayname, email, password string) (*models.User, string, string, error) {
 	passwordHash, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("register: %w", err)
+		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
 	}
 
 	user := &models.User{
@@ -60,19 +64,19 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 		} else if errors.Is(err, repositories.ErrDuplicateUsername) {
 			return nil, "", "", ErrUsernameExists
 		}
-		return nil, "", "", fmt.Errorf("register: %w", err)
+		return nil, "", "", fmt.Errorf("register: create user: %w", err)
 	}
 
 	s.repo.UpdateLastLogin(user)
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("register: %w", err)
+		return nil, "", "", fmt.Errorf("register: generate access token: %w", err)
 	}
 
 	refreshToken, err := s.generateRefreshToken(user)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("register: %w", err)
+		return nil, "", "", fmt.Errorf("register: generate refresh token: %w", err)
 	}
 
 	return user, accessToken, refreshToken, nil
@@ -81,7 +85,10 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 func (s *authUseCase) Login(email, password string) (*models.User, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
-		return nil, "", "", ErrUserNotFound
+		if errors.Is(err, repositories.ErrUserNotFound) {
+			return nil, "", "", ErrUserNotFound
+		}
+		return nil, "", "", fmt.Errorf("login: get user: %w", err)
 	}
 
 	err = s.passwordHasher.CompareHashAndPassword(user.PasswordHash, password)
@@ -93,12 +100,12 @@ func (s *authUseCase) Login(email, password string) (*models.User, string, strin
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("login: %w", err)
+		return nil, "", "", fmt.Errorf("login: generate access token: %w", err)
 	}
 
 	refreshToken, err := s.generateRefreshToken(user)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("login: %w", err)
+		return nil, "", "", fmt.Errorf("login: generate refresh token: %w", err)
 	}
 
 	return user, accessToken, refreshToken, nil
@@ -108,10 +115,13 @@ func (s *authUseCase) Logout(refreshToken string) error {
 	if refreshToken == "" {
 		return nil
 	}
+	if len(refreshToken) < refreshTokenPrefixLength {
+    	return ErrInvalidToken
+	}
 
-	prefix := refreshToken[:8]
+	prefix := refreshToken[:refreshTokenPrefixLength]
 	if err := s.repo.DeleteRefreshToken(prefix); err != nil {
-		return fmt.Errorf("logout: %w", err)
+		return fmt.Errorf("logout: delete refresh token: %w", err)
 	}
 
 	return nil
@@ -127,30 +137,33 @@ func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
 }
 
 func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
-	tokenString, hashString, err := s.tokenProvider.GenerateRefreshToken()
+	tokenString, hashString, expiresAt, err := s.tokenProvider.GenerateRefreshToken()
 	if err != nil {
-		return "", fmt.Errorf("generateRefreshToken: %w", err)
+		return "", fmt.Errorf("generateRefreshToken: generate: %w", err)
 	}
 
-	prefix := tokenString[:8]
-	
+	prefix := tokenString[:refreshTokenPrefixLength]
 
 	token := &models.RefreshToken{
 		UserID:      user.ID,
 		TokenPrefix: string(prefix),
 		TokenHash:   hashString,
-		ExpiresAt:   time.Now().AddDate(0, 0, 30),
+		ExpiresAt:   expiresAt,
 	}
 	err = s.repo.SaveRefreshToken(token)
 	if err != nil {
-		return "", fmt.Errorf("generateRefreshToken: %w", err)
+		return "", fmt.Errorf("generateRefreshToken: save: %w", err)
 	}
 
 	return tokenString, nil
 }
 
 func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, string, error) {
-	prefix := clientToken[:8]
+	if len(clientToken) < refreshTokenPrefixLength {
+    	return nil, "", "", ErrInvalidToken
+	}
+
+	prefix := clientToken[:refreshTokenPrefixLength]
 	storedToken, err := s.repo.GetRefreshTokenByPrefix(prefix)
 	if err != nil {
 		return nil, "", "", ErrInvalidToken
@@ -162,7 +175,7 @@ func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, s
 	}
 
 	if err := s.repo.DeleteRefreshToken(prefix); err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("refresh tokens: delete refresh token: %w", err)
 	}
 
 	user, err := s.repo.GetUserByID(storedToken.UserID)
@@ -172,12 +185,12 @@ func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, s
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("refresh tokens: generate access token: %w", err)
 	}
 
 	refreshToken, err := s.generateRefreshToken(user)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("refresh tokens: generate refresh token: %w", err)
 	}
 
 	return user, accessToken, refreshToken, nil
