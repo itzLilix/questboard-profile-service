@@ -1,7 +1,11 @@
 package jwt
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,8 +28,7 @@ func NewTokenProvider(secretKey []byte) *tokenProvider {
 	}
 }
 
-
-func (tp *tokenProvider) GenerateToken(userID, role string) (string, error) {
+func (tp *tokenProvider) GenerateAccessToken(userID, role string) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 	
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
@@ -37,6 +40,20 @@ func (tp *tokenProvider) GenerateToken(userID, role string) (string, error) {
 	})
 
 	return token.SignedString(tp.secretKey)
+}
+
+func (tp *tokenProvider) GenerateRefreshToken() (string, string, error) {
+	tokenBytes := make([]byte, 32)
+	n, err := rand.Read(tokenBytes)
+	if err != nil || n != len(tokenBytes) {
+		return "", "", fmt.Errorf("generateRefreshToken: %w", err)
+	}
+	tokenString := hex.EncodeToString(tokenBytes)
+
+	hash := sha256.Sum256([]byte(tokenString))
+	hashString := hex.EncodeToString(hash[:])
+
+	return tokenString, hashString,nil
 }
 
 func (tp *tokenProvider) ParseToken(tokenString string) (*models.TokenClaims, error) {
@@ -56,4 +73,14 @@ func (tp *tokenProvider) ParseToken(tokenString string) (*models.TokenClaims, er
 	}
 
 	return nil, fmt.Errorf("invalid claims")
+}
+
+func (tp *tokenProvider) IsRefreshTokenValid(clientToken, storedTokenHash string) bool {
+	clientHashBytes := sha256.Sum256([]byte(clientToken))
+	clientHash := hex.EncodeToString(clientHashBytes[:])
+
+	if !strings.EqualFold(storedTokenHash, clientHash) {
+		return false
+	}
+	return true
 }

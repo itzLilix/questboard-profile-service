@@ -11,6 +11,7 @@ import (
 	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
 	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
 	"github.com/itzLilix/QuestBoard/backend/pkg/database"
+	"github.com/itzLilix/QuestBoard/backend/pkg/hash"
 	"github.com/itzLilix/QuestBoard/backend/pkg/jwt"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -49,9 +50,10 @@ func main() {
 	log.Info().Msg("migrations ran successfully")
 
 	tokenProvider := jwt.NewTokenProvider([]byte(os.Getenv("JWT_SECRET")))
+	passwordHasher := hash.NewPasswordHasher()
 
 	authRepo := repositories.NewAuthRepository(conn)
-	authService := useCases.NewAuthUseCase(authRepo, tokenProvider)
+	authService := useCases.NewAuthUseCase(authRepo, tokenProvider, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger)
 
 	authHandler.RegisterRoutes(app)

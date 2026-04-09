@@ -19,6 +19,13 @@ type UsersRepository interface {
 }
 
 type TokenProvider interface{
-	GenerateToken(userID, role string) (string, error)
+	GenerateAccessToken(userID, role string) (string, error)
+	GenerateRefreshToken() (string, string, error)
 	ParseToken(tokenString string) (*models.TokenClaims, error)
+	IsRefreshTokenValid(clientToken, storedTokenHash string) bool
+}
+
+type PasswordHasher interface {
+	HashPassword(password string) (string, error)
+	CompareHashAndPassword(hash, password string) error
 }

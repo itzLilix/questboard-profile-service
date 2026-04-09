@@ -1,23 +1,13 @@
 package useCases
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/itzLilix/QuestBoard/backend/internal/models"
 	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
-	"golang.org/x/crypto/bcrypt"
 )
-
-// type HashProvider interface{
-// 	Hash(any) string
-// }
-
 
 type AuthUseCase interface {
 	Register(username, displayname, email, password string) (*models.User, string, string, error)
@@ -30,10 +20,11 @@ type AuthUseCase interface {
 type authUseCase struct {
 	repo AuthRepository
 	tokenProvider TokenProvider
+	passwordHasher PasswordHasher
 }
 
-func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider) AuthUseCase {
-	return &authUseCase{repo: repo, tokenProvider: tokenProvider}
+func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider, passwordHasher PasswordHasher) AuthUseCase {
+	return &authUseCase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
 }
 
 func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
@@ -51,16 +42,16 @@ func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
 }
 
 func (s *authUseCase) Register(username, displayname, email, password string) (*models.User, string, string, error) {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	passwordHash, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("register: %w", err)
 	}
 
 	user := &models.User{
 		Username:     username,
 		DisplayName: displayname,
 		Email:        email,
-		PasswordHash: string(passwordHash),
+		PasswordHash: passwordHash,
 	}
 	err = s.repo.CreateUser(user)
 	if err != nil {
@@ -76,12 +67,12 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("register: %w", err)
 	}
 
 	refreshToken, err := s.generateRefreshToken(user)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("register: %w", err)
 	}
 
 	return user, accessToken, refreshToken, nil
@@ -93,7 +84,7 @@ func (s *authUseCase) Login(email, password string) (*models.User, string, strin
 		return nil, "", "", ErrUserNotFound
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	err = s.passwordHasher.CompareHashAndPassword(user.PasswordHash, password)
 	if err != nil {
 		return nil, "", "", ErrWrongPassword
 	}
@@ -102,12 +93,12 @@ func (s *authUseCase) Login(email, password string) (*models.User, string, strin
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("login: %w", err)
 	}
 
 	refreshToken, err := s.generateRefreshToken(user)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", fmt.Errorf("login: %w", err)
 	}
 
 	return user, accessToken, refreshToken, nil
@@ -120,14 +111,14 @@ func (s *authUseCase) Logout(refreshToken string) error {
 
 	prefix := refreshToken[:8]
 	if err := s.repo.DeleteRefreshToken(prefix); err != nil {
-		return err
+		return fmt.Errorf("logout: %w", err)
 	}
 
 	return nil
 }
 
 func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
-	token, err := s.tokenProvider.GenerateToken(user.ID, user.Role)
+	token, err := s.tokenProvider.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		return "", fmt.Errorf("generateAccessToken: %w", err)
 	}
@@ -136,13 +127,13 @@ func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
 }
 
 func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
-	tokenBytes := make([]byte, 32)
-	rand.Read(tokenBytes)
-	tokenString := hex.EncodeToString(tokenBytes)
+	tokenString, hashString, err := s.tokenProvider.GenerateRefreshToken()
+	if err != nil {
+		return "", fmt.Errorf("generateRefreshToken: %w", err)
+	}
 
 	prefix := tokenString[:8]
-	hash := sha256.Sum256([]byte(tokenString))
-	hashString := hex.EncodeToString(hash[:])
+	
 
 	token := &models.RefreshToken{
 		UserID:      user.ID,
@@ -150,9 +141,9 @@ func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
 		TokenHash:   hashString,
 		ExpiresAt:   time.Now().AddDate(0, 0, 30),
 	}
-	err := s.repo.SaveRefreshToken(token)
+	err = s.repo.SaveRefreshToken(token)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("generateRefreshToken: %w", err)
 	}
 
 	return tokenString, nil
@@ -165,16 +156,11 @@ func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, s
 		return nil, "", "", ErrInvalidToken
 	}
 
-	clientHashBytes := sha256.Sum256([]byte(clientToken))
-	clientHash := hex.EncodeToString(clientHashBytes[:])
+	if !s.tokenProvider.IsRefreshTokenValid(clientToken, storedToken.TokenHash) || 
+		storedToken.ExpiresAt.Before(time.Now()) {
+		return nil, "", "", ErrInvalidToken
+	}
 
-	if !strings.EqualFold(storedToken.TokenHash, clientHash) {
-		return nil, "", "", ErrInvalidToken
-	}
-	if storedToken.ExpiresAt.Before(time.Now()){
-		return nil, "", "", ErrInvalidToken
-	}
-	
 	if err := s.repo.DeleteRefreshToken(prefix); err != nil {
 		return nil, "", "", err
 	}
