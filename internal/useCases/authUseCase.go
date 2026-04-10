@@ -67,7 +67,7 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 		return nil, "", "", fmt.Errorf("register: create user: %w", err)
 	}
 
-	s.repo.UpdateLastLogin(user)
+	_ = s.repo.UpdateLastLogin(user)
 
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {

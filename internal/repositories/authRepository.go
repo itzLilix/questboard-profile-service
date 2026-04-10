@@ -26,7 +26,10 @@ func (r *authRepository) GetUserByID(id string) (*models.User, error) {
 	user := &models.User{}
 	err := scanUser(row, user)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+        return nil, fmt.Errorf("get user by id: %w", err)
 	}
 	return user, nil
 }
@@ -57,10 +60,11 @@ func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
 		"SELECT * FROM users WHERE email=$1", email)
 	user := &models.User{}
 	err := scanUser(row, user)
-	if errors.Is(err, pgx.ErrNoRows) {
-        return nil, ErrUserNotFound
-    }
+
     if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
         return nil, fmt.Errorf("get user by email: %w", err)
     }
 	return user, nil
