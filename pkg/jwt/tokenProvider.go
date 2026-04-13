@@ -14,6 +14,8 @@ import (
 
 type tokenProvider struct {
 	secretKey []byte
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
 }
 
 type claims struct {
@@ -24,18 +26,18 @@ type claims struct {
 
 const (
 	refreshTokenLength = 32
-	accessTokenTTL = time.Minute * 15
-	refreshTokenTTL = time.Hour * 24 * 30
 )
 
-func NewTokenProvider(secretKey []byte) *tokenProvider {
+func NewTokenProvider(secretKey []byte, accessTokenTTL, refreshTokenTTL time.Duration) *tokenProvider {
 	return &tokenProvider{
 		secretKey: secretKey,
+		accessTokenTTL: accessTokenTTL,
+		refreshTokenTTL: refreshTokenTTL,
 	}
 }
 
 func (tp *tokenProvider) GenerateAccessToken(userID string, role models.Role) (string, error) {
-	expirationTime := time.Now().Add(accessTokenTTL)
+	expirationTime := time.Now().Add(tp.accessTokenTTL)
 	
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		UserID: userID,
@@ -59,7 +61,7 @@ func (tp *tokenProvider) GenerateRefreshToken() (string, string, time.Time, erro
 	hash := sha256.Sum256([]byte(tokenString))
 	hashString := hex.EncodeToString(hash[:])
 
-	return tokenString, hashString, time.Now().Add(refreshTokenTTL), nil
+	return tokenString, hashString, time.Now().Add(tp.refreshTokenTTL), nil
 }
 
 func (tp *tokenProvider) ParseToken(tokenString string) (*models.TokenClaims, error) {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/itzLilix/QuestBoard/backend/internal/config"
 	"github.com/itzLilix/QuestBoard/backend/internal/handlers"
 	"github.com/itzLilix/QuestBoard/backend/internal/middleware"
 	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
@@ -27,6 +28,8 @@ func main() {
 		log.Fatal().Err(err).Msg("error loading .env file")
 	}
 
+	cfg := config.Load()
+
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
@@ -35,28 +38,27 @@ func main() {
 	}))
 	app.Use(middleware.Logger(log.Logger))
 
-	dbURL := os.Getenv("POSTGRES_URL")
-	conn, err := database.Connect(dbURL)
+	conn, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to database")
 	}
 	log.Info().Msg("successfully connected to database")
 	defer conn.Close()
 
-	err = database.RunMigrations(os.Getenv("MIGRATE_URL"))
+	err = database.RunMigrations(cfg.MigrateURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to run migrations")
 	}
 	log.Info().Msg("migrations ran successfully")
 
-	tokenProvider := jwt.NewTokenProvider([]byte(os.Getenv("JWT_SECRET")))
+	tokenProvider := jwt.NewTokenProvider([]byte(cfg.JWTSecret), cfg.AccessTTL, cfg.RefreshTTL)
 	passwordHasher := hash.NewPasswordHasher()
 
 	authRepo := repositories.NewAuthRepository(conn)
 	authService := useCases.NewAuthUseCase(authRepo, tokenProvider, passwordHasher)
-	authHandler := handlers.NewAuthHandler(authService, log.Logger)
+	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
 	authHandler.RegisterRoutes(app)
 
-	log.Fatal().Err(app.Listen(":3000")).Msg("server stopped")
+	log.Fatal().Err(app.Listen(":" + cfg.ServerPort)).Msg("server stopped")
 }

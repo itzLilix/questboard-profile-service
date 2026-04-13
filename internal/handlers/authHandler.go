@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"errors"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/itzLilix/QuestBoard/backend/internal/config"
 	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
@@ -16,15 +19,17 @@ type AuthHandler interface {
 type authHandler struct {
 	useCase useCases.AuthUseCase
 	log     zerolog.Logger
+	cfg    *config.Config
 }
 
 const (
 	accessCookie = "access_token"
 	refreshCookie = "refresh_token"
+	accessTokenExpCookie = "access_token_exp"
 )
 
-func NewAuthHandler(useCase useCases.AuthUseCase, log zerolog.Logger) AuthHandler {
-	return &authHandler{useCase: useCase, log: log}
+func NewAuthHandler(useCase useCases.AuthUseCase, log zerolog.Logger, cfg *config.Config) AuthHandler {
+	return &authHandler{useCase: useCase, log: log, cfg: cfg}
 }
 
 func (h *authHandler) RegisterRoutes(app *fiber.App) {
@@ -34,7 +39,6 @@ func (h *authHandler) RegisterRoutes(app *fiber.App) {
 	auth.Post("/logout", h.logout)
 	auth.Get("/activate/:link", h.activate)
 	auth.Get("/refresh", h.refresh)
-	auth.Get("/me", h.restoreSession)
 }
 
 func (h *authHandler) login(c fiber.Ctx) error {
@@ -129,22 +133,6 @@ func (h *authHandler) refresh(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(user)
 }
 
-func (h *authHandler) restoreSession(c fiber.Ctx) error {
-	tokenString := c.Cookies("access_token")
-
-	if tokenString == "" {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-
-	user, err := h.useCase.ValidateToken(tokenString)
-	if err != nil {
-		h.log.Warn().Err(err).Msg("session restore failed")
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-
-	return c.Status(fiber.StatusOK).JSON(user)
-}
-
 func (h *authHandler) setAuthCookies(c fiber.Ctx, accessToken, refreshToken string) {
 	c.Cookie(&fiber.Cookie{
         Name:     accessCookie,
@@ -162,6 +150,14 @@ func (h *authHandler) setAuthCookies(c fiber.Ctx, accessToken, refreshToken stri
         Secure:   true,
         SameSite: "Strict",
     })
+	c.Cookie(&fiber.Cookie{
+		Name:     accessTokenExpCookie,
+		Value:    strconv.FormatInt(time.Now().Add(h.cfg.AccessTTL).Unix(), 10),
+		Path:     "/",
+		HTTPOnly: false,
+		Secure:   true,
+		SameSite: "Strict",
+	})
 }
 
 func (h *authHandler) clearAuthCookies(c fiber.Ctx) {
@@ -183,4 +179,12 @@ func (h *authHandler) clearAuthCookies(c fiber.Ctx) {
         Secure:   true,
         SameSite: "Strict",
     })
+	c.Cookie(&fiber.Cookie{
+		Name:     accessTokenExpCookie,
+		Value:    "",
+		Path:     "/",
+		HTTPOnly: false,
+		Secure:   true,
+		SameSite: "Strict",
+	})
 }
