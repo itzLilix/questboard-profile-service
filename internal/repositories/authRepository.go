@@ -75,7 +75,10 @@ func (r *authRepository) SaveRefreshToken(token *models.RefreshToken) error {
 	"INSERT INTO refresh_tokens (user_id, token_prefix, token_hash, expires_at) VALUES ($1, $2, $3, $4) RETURNING id, created_at",
 	token.UserID, token.TokenPrefix, token.TokenHash, token.ExpiresAt)
 	err := row.Scan(&token.ID, &token.CreatedAt)
-	return err
+	if err != nil {
+		return fmt.Errorf("save refresh token: %w", err)
+	}
+	return nil
 }
 
 func (r *authRepository) GetRefreshTokenByPrefix(prefix string) (*models.RefreshToken, error) {
@@ -84,7 +87,10 @@ func (r *authRepository) GetRefreshTokenByPrefix(prefix string) (*models.Refresh
 	token := &models.RefreshToken{}
 	err := row.Scan(&token.ID, &token.UserID, &token.TokenPrefix, &token.TokenHash, &token.ExpiresAt, &token.CreatedAt)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRefreshTokenNotFound
+		}
+		return nil, fmt.Errorf("get refresh token by prefix: %w", err)
 	}
 	return token, nil
 }

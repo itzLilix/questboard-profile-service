@@ -23,7 +23,7 @@ func Load() *Config {
 
 	return &Config{
 		ServerPort:    	getEnv("SERVER_PORT", "3000"),
-		DatabaseURL:         	getEnv("POSTGRES_URL", ""),
+		DatabaseURL:    getEnv("POSTGRES_URL", ""),
 		MigrateURL:    	getEnv("MIGRATE_URL", ""),
 		JWTSecret:     	JWTSecret,
 		AccessTTL: 		time.Minute * 15,

@@ -162,11 +162,14 @@ func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, s
 	if len(clientToken) < refreshTokenPrefixLength {
     	return nil, "", "", ErrInvalidToken
 	}
-
+	
 	prefix := clientToken[:refreshTokenPrefixLength]
 	storedToken, err := s.repo.GetRefreshTokenByPrefix(prefix)
 	if err != nil {
-		return nil, "", "", ErrInvalidToken
+		if errors.Is(err, repositories.ErrRefreshTokenNotFound) {
+			return nil, "", "", ErrInvalidToken
+		}
+		return nil, "", "", fmt.Errorf("refresh tokens: get refresh token: %w", err)
 	}
 
 	if !s.tokenProvider.IsRefreshTokenValid(clientToken, storedToken.TokenHash) || 
