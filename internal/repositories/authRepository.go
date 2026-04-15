@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/itzLilix/questboard-shared/models"
+	"github.com/itzLilix/questboard-profile-service/internal/entities"
+	dtos "github.com/itzLilix/questboard-shared/DTOs"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,10 +21,10 @@ func NewAuthRepository(db *pgxpool.Pool) *authRepository {
 	return &authRepository{db: db}
 }
 
-func (r *authRepository) GetUserByID(id string) (*models.User, error) {
+func (r *authRepository) GetUserByID(id string) (*entities.User, error) {
 	row := r.db.QueryRow(context.Background(),
 		"SELECT * FROM users WHERE id=$1", id)
-	user := &models.User{}
+	user := &entities.User{}
 	err := scanUser(row, user)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -34,10 +35,10 @@ func (r *authRepository) GetUserByID(id string) (*models.User, error) {
 	return user, nil
 }
 
-func (r *authRepository) CreateUser(user *models.User) error {
+func (r *authRepository) CreateUser(user *entities.User) error {
 	row := r.db.QueryRow(context.Background(),
 		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at",
-		user.Username, user.DisplayName, user.PasswordHash, user.Email, models.UserRole)
+		user.Username, user.DisplayName, user.PasswordHash, user.Email, dtos.UserRole)
 
 	err := row.Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
@@ -55,10 +56,10 @@ func (r *authRepository) CreateUser(user *models.User) error {
 	return nil
 }
 
-func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
+func (r *authRepository) GetUserByEmail(email string) (*entities.User, error) {
 	row := r.db.QueryRow(context.Background(),
 		"SELECT * FROM users WHERE email=$1", email)
-	user := &models.User{}
+	user := &entities.User{}
 	err := scanUser(row, user)
 
     if err != nil {
@@ -70,7 +71,7 @@ func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
 	return user, nil
 }
 
-func (r *authRepository) SaveRefreshToken(token *models.RefreshToken) error {
+func (r *authRepository) SaveRefreshToken(token *entities.RefreshToken) error {
 	row := r.db.QueryRow(context.Background(),
 	"INSERT INTO refresh_tokens (user_id, token_prefix, token_hash, expires_at) VALUES ($1, $2, $3, $4) RETURNING id, created_at",
 	token.UserID, token.TokenPrefix, token.TokenHash, token.ExpiresAt)
@@ -81,10 +82,10 @@ func (r *authRepository) SaveRefreshToken(token *models.RefreshToken) error {
 	return nil
 }
 
-func (r *authRepository) GetRefreshTokenByPrefix(prefix string) (*models.RefreshToken, error) {
+func (r *authRepository) GetRefreshTokenByPrefix(prefix string) (*entities.RefreshToken, error) {
 	row := r.db.QueryRow(context.Background(),
 	"SELECT * FROM refresh_tokens WHERE token_prefix=$1", prefix)
-	token := &models.RefreshToken{}
+	token := &entities.RefreshToken{}
 	err := row.Scan(&token.ID, &token.UserID, &token.TokenPrefix, &token.TokenHash, &token.ExpiresAt, &token.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -100,7 +101,7 @@ func (r *authRepository) DeleteRefreshToken(prefix string) error {
 	return err
 }
 
-func (r *authRepository) UpdateLastLogin(user *models.User) error {
+func (r *authRepository) UpdateLastLogin(user *entities.User) error {
 	row := r.db.QueryRow(context.Background(), "UPDATE users SET last_login = NOW() WHERE id = $1 RETURNING last_login", user.ID)
 	err := row.Scan(&user.LastLogin)
 	return err

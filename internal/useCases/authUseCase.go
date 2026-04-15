@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/itzLilix/questboard-profile-service/internal/repositories"
-	"github.com/itzLilix/questboard-shared/models"
 )
 
 type AuthUseCase interface {
-	Register(username, displayname, email, password string) (*models.User, string, string, error)
-	Login(username, password string) (*models.User, string, string, error)
+	Register(username, displayname, email, password string) (*entities.User, string, string, error)
+	Login(username, password string) (*entities.User, string, string, error)
 	Logout(refreshToken string) error
-	ValidateToken(tokenString string) (*models.User, error)
-	RefreshTokens(refreshToken string) (*models.User, string, string, error)
+	ValidateToken(tokenString string) (*entities.User, error)
+	RefreshTokens(refreshToken string) (*entities.User, string, string, error)
 }
 
 type authUseCase struct {
@@ -31,7 +31,7 @@ func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider, passwordHa
 	return &authUseCase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
 }
 
-func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
+func (s *authUseCase) ValidateToken(tokenString string) (*entities.User, error) {
 	claims, err := s.tokenProvider.ParseToken(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("validateToken: parse token: %w", err)
@@ -45,13 +45,13 @@ func (s *authUseCase) ValidateToken(tokenString string) (*models.User, error) {
 	return user, nil
 }
 
-func (s *authUseCase) Register(username, displayname, email, password string) (*models.User, string, string, error) {
+func (s *authUseCase) Register(username, displayname, email, password string) (*entities.User, string, string, error) {
 	passwordHash, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
 	}
 
-	user := &models.User{
+	user := &entities.User{
 		Username:     username,
 		DisplayName: displayname,
 		Email:        email,
@@ -82,7 +82,7 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 	return user, accessToken, refreshToken, nil
 }
 
-func (s *authUseCase) Login(email, password string) (*models.User, string, string, error) {
+func (s *authUseCase) Login(email, password string) (*entities.User, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, repositories.ErrUserNotFound) {
@@ -127,7 +127,7 @@ func (s *authUseCase) Logout(refreshToken string) error {
 	return nil
 }
 
-func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
+func (s *authUseCase) generateAccessToken(user *entities.User) (string, error) {
 	token, err := s.tokenProvider.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		return "", fmt.Errorf("generateAccessToken: %w", err)
@@ -136,7 +136,7 @@ func (s *authUseCase) generateAccessToken(user *models.User) (string, error) {
 	return token, nil
 }
 
-func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
+func (s *authUseCase) generateRefreshToken(user *entities.User) (string, error) {
 	tokenString, hashString, expiresAt, err := s.tokenProvider.GenerateRefreshToken()
 	if err != nil {
 		return "", fmt.Errorf("generateRefreshToken: generate: %w", err)
@@ -144,7 +144,7 @@ func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
 
 	prefix := tokenString[:refreshTokenPrefixLength]
 
-	token := &models.RefreshToken{
+	token := &entities.RefreshToken{
 		UserID:      user.ID,
 		TokenPrefix: string(prefix),
 		TokenHash:   hashString,
@@ -158,7 +158,7 @@ func (s *authUseCase) generateRefreshToken(user *models.User) (string, error) {
 	return tokenString, nil
 }
 
-func (s *authUseCase) RefreshTokens(clientToken string) (*models.User, string, string, error) {
+func (s *authUseCase) RefreshTokens(clientToken string) (*entities.User, string, string, error) {
 	if len(clientToken) < refreshTokenPrefixLength {
     	return nil, "", "", ErrInvalidToken
 	}

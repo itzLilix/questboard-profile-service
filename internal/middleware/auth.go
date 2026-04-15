@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/itzLilix/questboard-shared/models"
+	dtos "github.com/itzLilix/questboard-shared/DTOs"
 	"github.com/rs/zerolog"
 )
 
 type TokenParser interface {
-    ParseToken(tokenString string) (*models.TokenClaims, error)
+    ParseToken(tokenString string) (*dtos.TokenClaims, error)
 }
 
 const (

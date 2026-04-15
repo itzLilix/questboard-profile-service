@@ -1,11 +1,11 @@
 package repositories
 
 import (
-	"github.com/itzLilix/questboard-shared/models"
+	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/jackc/pgx/v5"
 )
 
-func scanUser(row pgx.Row, user *models.User) error {
+func scanUser(row pgx.Row, user *entities.User) error {
 	return row.Scan(
 		&user.ID,
 		&user.Username,

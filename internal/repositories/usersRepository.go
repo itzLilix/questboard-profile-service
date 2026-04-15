@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/itzLilix/questboard-shared/models"
+	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -14,6 +14,6 @@ func NewUsersRepository(db *pgxpool.Pool) *usersRepository {
 	return &usersRepository{db: db}
 }
 
-func (r *usersRepository) GetUserByUsername(username string) (*models.User, error) {
+func (r *usersRepository) GetUserByUsername(username string) (*entities.User, error) {
 	panic("unimplemented")
 }

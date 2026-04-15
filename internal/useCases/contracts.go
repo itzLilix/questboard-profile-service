@@ -3,27 +3,28 @@ package useCases
 import (
 	"time"
 
-	"github.com/itzLilix/questboard-shared/models"
+	"github.com/itzLilix/questboard-profile-service/internal/entities"
+	dtos "github.com/itzLilix/questboard-shared/DTOs"
 )
 
 type AuthRepository interface {
-	CreateUser(user *models.User) error
-	GetUserByEmail(email string) (*models.User, error)
-	GetUserByID(id string) (*models.User, error)
-	SaveRefreshToken(token *models.RefreshToken) error
-	GetRefreshTokenByPrefix(prefix string) (*models.RefreshToken, error)
+	CreateUser(user *entities.User) error
+	GetUserByEmail(email string) (*entities.User, error)
+	GetUserByID(id string) (*entities.User, error)
+	SaveRefreshToken(token *entities.RefreshToken) error
+	GetRefreshTokenByPrefix(prefix string) (*entities.RefreshToken, error)
 	DeleteRefreshToken(prefix string) error
-	UpdateLastLogin(user *models.User) error
+	UpdateLastLogin(user *entities.User) error
 }
 
 type UsersRepository interface {
-	GetUserByUsername(username string) (*models.User, error)
+	GetUserByUsername(username string) (*entities.User, error)
 }
 
 type TokenProvider interface{
-	GenerateAccessToken(userID string, role models.Role) (string, error)
+	GenerateAccessToken(userID string, role dtos.Role) (string, error)
 	GenerateRefreshToken() (string, string, time.Time, error)
-	ParseToken(tokenString string) (*models.TokenClaims, error)
+	ParseToken(tokenString string) (*dtos.TokenClaims, error)
 	IsRefreshTokenValid(clientToken, storedTokenHash string) bool
 }
 
