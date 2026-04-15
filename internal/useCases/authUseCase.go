@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/itzLilix/QuestBoard/backend/internal/models"
-	"github.com/itzLilix/QuestBoard/backend/internal/repositories"
+	"github.com/itzLilix/questboard-profile-service/internal/repositories"
+	"github.com/itzLilix/questboard-shared/models"
 )
 
 type AuthUseCase interface {

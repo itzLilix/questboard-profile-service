@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/itzLilix/QuestBoard/backend/internal/config"
-	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
+	"github.com/itzLilix/questboard-profile-service/internal/config"
+	"github.com/itzLilix/questboard-profile-service/internal/useCases"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )

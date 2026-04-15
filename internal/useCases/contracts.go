@@ -3,7 +3,7 @@ package useCases
 import (
 	"time"
 
-	"github.com/itzLilix/QuestBoard/backend/internal/models"
+	"github.com/itzLilix/questboard-shared/models"
 )
 
 type AuthRepository interface {

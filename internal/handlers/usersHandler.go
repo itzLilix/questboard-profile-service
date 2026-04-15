@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/itzLilix/QuestBoard/backend/internal/useCases"
+	"github.com/itzLilix/questboard-profile-service/internal/useCases"
 )
 
 type UsersHandler interface {

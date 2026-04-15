@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/itzLilix/QuestBoard/backend/internal/models"
+	"github.com/itzLilix/questboard-shared/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

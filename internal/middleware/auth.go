@@ -1,9 +1,8 @@
-// internal/middleware/auth.go
 package middleware
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/itzLilix/QuestBoard/backend/internal/models"
+	"github.com/itzLilix/questboard-shared/models"
 	"github.com/rs/zerolog"
 )
 
