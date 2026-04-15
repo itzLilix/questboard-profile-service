@@ -1,0 +1,3 @@
+ALTER TABLE users
+ADD COLUMN bio TEXT,
+ADD COLUMN links JSONB NOT NULL DEFAULT '[]'::jsonb;

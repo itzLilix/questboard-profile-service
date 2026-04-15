@@ -37,10 +37,10 @@ func (r *authRepository) GetUserByID(id string) (*entities.User, error) {
 
 func (r *authRepository) CreateUser(user *entities.User) error {
 	row := r.db.QueryRow(context.Background(),
-		"INSERT INTO users (username, display_name, password_hash, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at",
+		"INSERT INTO users (username, display_name, password_hash, email, role, last_login) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, created_at, last_login",
 		user.Username, user.DisplayName, user.PasswordHash, user.Email, dtos.UserRole)
 
-	err := row.Scan(&user.ID, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.CreatedAt, &user.LastLogin)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {

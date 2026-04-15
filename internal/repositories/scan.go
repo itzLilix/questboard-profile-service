@@ -21,5 +21,8 @@ func scanUser(row pgx.Row, user *entities.User) error {
 		&user.SessionsPlayed,
 		&user.SessionsHosted,
 		&user.Rating,
-		&user.ReviewsCount)
+		&user.ReviewsCount,
+		&user.Bio,
+		&user.Links,
+	)
 }

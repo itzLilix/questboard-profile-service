@@ -7,14 +7,15 @@ import (
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/itzLilix/questboard-profile-service/internal/repositories"
+	dtos "github.com/itzLilix/questboard-shared/DTOs"
 )
 
 type AuthUseCase interface {
-	Register(username, displayname, email, password string) (*entities.User, string, string, error)
-	Login(username, password string) (*entities.User, string, string, error)
+	Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error)
+	Login(username, password string) (*dtos.PrivateProfile, string, string, error)
 	Logout(refreshToken string) error
-	ValidateToken(tokenString string) (*entities.User, error)
-	RefreshTokens(refreshToken string) (*entities.User, string, string, error)
+	ValidateToken(tokenString string) (*dtos.PrivateProfile, error)
+	RefreshTokens(refreshToken string) (*dtos.PrivateProfile, string, string, error)
 }
 
 type authUseCase struct {
@@ -31,7 +32,7 @@ func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider, passwordHa
 	return &authUseCase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
 }
 
-func (s *authUseCase) ValidateToken(tokenString string) (*entities.User, error) {
+func (s *authUseCase) ValidateToken(tokenString string) (*dtos.PrivateProfile, error) {
 	claims, err := s.tokenProvider.ParseToken(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("validateToken: parse token: %w", err)
@@ -42,10 +43,10 @@ func (s *authUseCase) ValidateToken(tokenString string) (*entities.User, error) 
 		return nil, fmt.Errorf("validateToken: get user: %w", err)
 	}
 
-	return user, nil
+	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *authUseCase) Register(username, displayname, email, password string) (*entities.User, string, string, error) {
+func (s *authUseCase) Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error) {
 	passwordHash, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
@@ -67,8 +68,6 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 		return nil, "", "", fmt.Errorf("register: create user: %w", err)
 	}
 
-	_ = s.repo.UpdateLastLogin(user)
-
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("register: generate access token: %w", err)
@@ -79,10 +78,10 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 		return nil, "", "", fmt.Errorf("register: generate refresh token: %w", err)
 	}
 
-	return user, accessToken, refreshToken, nil
+	return mapUserToPrivateProfile(user), accessToken, refreshToken, nil
 }
 
-func (s *authUseCase) Login(email, password string) (*entities.User, string, string, error) {
+func (s *authUseCase) Login(email, password string) (*dtos.PrivateProfile, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, repositories.ErrUserNotFound) {
@@ -108,7 +107,7 @@ func (s *authUseCase) Login(email, password string) (*entities.User, string, str
 		return nil, "", "", fmt.Errorf("login: generate refresh token: %w", err)
 	}
 
-	return user, accessToken, refreshToken, nil
+	return mapUserToPrivateProfile(user), accessToken, refreshToken, nil
 }
 
 func (s *authUseCase) Logout(refreshToken string) error {
@@ -158,7 +157,7 @@ func (s *authUseCase) generateRefreshToken(user *entities.User) (string, error) 
 	return tokenString, nil
 }
 
-func (s *authUseCase) RefreshTokens(clientToken string) (*entities.User, string, string, error) {
+func (s *authUseCase) RefreshTokens(clientToken string) (*dtos.PrivateProfile, string, string, error) {
 	if len(clientToken) < refreshTokenPrefixLength {
     	return nil, "", "", ErrInvalidToken
 	}
@@ -196,5 +195,5 @@ func (s *authUseCase) RefreshTokens(clientToken string) (*entities.User, string,
 		return nil, "", "", fmt.Errorf("refresh tokens: generate refresh token: %w", err)
 	}
 
-	return user, accessToken, refreshToken, nil
+	return mapUserToPrivateProfile(user), accessToken, refreshToken, nil
 }
