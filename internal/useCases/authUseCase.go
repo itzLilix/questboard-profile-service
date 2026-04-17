@@ -10,7 +10,7 @@ import (
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
-type AuthUseCase interface {
+type AuthUsecase interface {
 	Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error)
 	Login(username, password string) (*dtos.PrivateProfile, string, string, error)
 	Logout(refreshToken string) error
@@ -18,7 +18,7 @@ type AuthUseCase interface {
 	RefreshTokens(refreshToken string) (*dtos.PrivateProfile, string, string, error)
 }
 
-type authUseCase struct {
+type authUsecase struct {
 	repo AuthRepository
 	tokenProvider TokenProvider
 	passwordHasher PasswordHasher
@@ -28,11 +28,11 @@ const (
 	refreshTokenPrefixLength = 8
 )
 
-func NewAuthUseCase(repo AuthRepository, tokenProvider TokenProvider, passwordHasher PasswordHasher) AuthUseCase {
-	return &authUseCase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
+func NewAuthUsecase(repo AuthRepository, tokenProvider TokenProvider, passwordHasher PasswordHasher) AuthUsecase {
+	return &authUsecase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
 }
 
-func (s *authUseCase) ValidateToken(tokenString string) (*dtos.PrivateProfile, error) {
+func (s *authUsecase) ValidateToken(tokenString string) (*dtos.PrivateProfile, error) {
 	claims, err := s.tokenProvider.ParseToken(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("validateToken: parse token: %w", err)
@@ -46,18 +46,34 @@ func (s *authUseCase) ValidateToken(tokenString string) (*dtos.PrivateProfile, e
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *authUseCase) Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error) {
+func (s *authUsecase) Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error) {
 	passwordHash, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
 	}
 
+	err = validateUsername(username)
+	if err != nil {
+		return nil, "", "", wrapInvalidDataError(err)
+	}
+
+	err = validateEmail(email)
+	if err != nil {
+		return nil, "", "", wrapInvalidDataError(err)
+	}
+
+	err = validateDisplayName(displayname)
+	if err != nil {
+		return nil, "", "", wrapInvalidDataError(err)
+	}
+
 	user := &entities.User{
 		Username:     username,
-		DisplayName: displayname,
+		DisplayName:  displayname,
 		Email:        email,
 		PasswordHash: passwordHash,
 	}
+
 	err = s.repo.CreateUser(user)
 	if err != nil {
 		if errors.Is(err, repositories.ErrDuplicateEmail) {
@@ -81,7 +97,7 @@ func (s *authUseCase) Register(username, displayname, email, password string) (*
 	return mapUserToPrivateProfile(user), accessToken, refreshToken, nil
 }
 
-func (s *authUseCase) Login(email, password string) (*dtos.PrivateProfile, string, string, error) {
+func (s *authUsecase) Login(email, password string) (*dtos.PrivateProfile, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, repositories.ErrUserNotFound) {
@@ -110,7 +126,7 @@ func (s *authUseCase) Login(email, password string) (*dtos.PrivateProfile, strin
 	return mapUserToPrivateProfile(user), accessToken, refreshToken, nil
 }
 
-func (s *authUseCase) Logout(refreshToken string) error {
+func (s *authUsecase) Logout(refreshToken string) error {
 	if refreshToken == "" {
 		return nil
 	}
@@ -126,7 +142,7 @@ func (s *authUseCase) Logout(refreshToken string) error {
 	return nil
 }
 
-func (s *authUseCase) generateAccessToken(user *entities.User) (string, error) {
+func (s *authUsecase) generateAccessToken(user *entities.User) (string, error) {
 	token, err := s.tokenProvider.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		return "", fmt.Errorf("generateAccessToken: %w", err)
@@ -135,7 +151,7 @@ func (s *authUseCase) generateAccessToken(user *entities.User) (string, error) {
 	return token, nil
 }
 
-func (s *authUseCase) generateRefreshToken(user *entities.User) (string, error) {
+func (s *authUsecase) generateRefreshToken(user *entities.User) (string, error) {
 	tokenString, hashString, expiresAt, err := s.tokenProvider.GenerateRefreshToken()
 	if err != nil {
 		return "", fmt.Errorf("generateRefreshToken: generate: %w", err)
@@ -157,7 +173,7 @@ func (s *authUseCase) generateRefreshToken(user *entities.User) (string, error) 
 	return tokenString, nil
 }
 
-func (s *authUseCase) RefreshTokens(clientToken string) (*dtos.PrivateProfile, string, string, error) {
+func (s *authUsecase) RefreshTokens(clientToken string) (*dtos.PrivateProfile, string, string, error) {
 	if len(clientToken) < refreshTokenPrefixLength {
     	return nil, "", "", ErrInvalidToken
 	}

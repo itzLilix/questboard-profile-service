@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
+	"github.com/itzLilix/questboard-profile-service/internal/repositories"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -19,6 +20,8 @@ type AuthRepository interface {
 
 type UsersRepository interface {
 	GetUserByUsername(username string) (*entities.User, error)
+	GetUserByID(id string) (*entities.User, error)
+	UpdateUser(input *repositories.UpdateUserParams) (*entities.User, error)
 }
 
 type TokenProvider interface{

@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
+	"github.com/itzLilix/questboard-profile-service/internal/repositories"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -38,4 +39,15 @@ func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfile {
 		Role:              user.Role,
 		IsEmailVerified: user.IsEmailVerified,
 	}
+}
+
+func mapUpdateInputToRepoParams(in *UpdateProfileInput) *repositories.UpdateUserParams {
+    return &repositories.UpdateUserParams{
+        UserID:      in.UserID,
+        Username:    in.Username,
+        DisplayName: in.DisplayName,
+        AvatarURL:   in.AvatarURL,
+        BannerURL:   in.BannerURL,
+        Bio:         in.Bio,
+    }
 }

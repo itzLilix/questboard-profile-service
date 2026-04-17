@@ -53,12 +53,18 @@ func main() {
 
 	tokenProvider := jwt.NewTokenProvider([]byte(cfg.JWTSecret), cfg.AccessTTL, cfg.RefreshTTL)
 	passwordHasher := hash.NewPasswordHasher()
+	rbacMiddleware := middleware.NewRBACMiddleware(tokenProvider, log.Logger)
 
 	authRepo := repositories.NewAuthRepository(conn)
-	authService := usecases.NewAuthUseCase(authRepo, tokenProvider, passwordHasher)
+	authService := usecases.NewAuthUsecase(authRepo, tokenProvider, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
+	usersRepo := repositories.NewUsersRepository(conn)
+	usersService := usecases.NewUsersUsecase(usersRepo)
+	usersHandler := handlers.NewHandler(usersService, log.Logger, rbacMiddleware)
+
 	authHandler.RegisterRoutes(app)
+	usersHandler.RegisterRoutes(app)
 
 	log.Fatal().Err(app.Listen(":" + cfg.ServerPort)).Msg("server stopped")
 }

@@ -17,7 +17,7 @@ type AuthHandler interface {
 }
 
 type authHandler struct {
-	useCase usecases.AuthUseCase
+	usecase usecases.AuthUsecase
 	log     zerolog.Logger
 	cfg    *config.Config
 }
@@ -28,8 +28,8 @@ const (
 	accessTokenExpCookie = "access_token_exp"
 )
 
-func NewAuthHandler(useCase usecases.AuthUseCase, log zerolog.Logger, cfg *config.Config) AuthHandler {
-	return &authHandler{useCase: useCase, log: log, cfg: cfg}
+func NewAuthHandler(usecase usecases.AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
+	return &authHandler{usecase: usecase, log: log, cfg: cfg}
 }
 
 func (h *authHandler) RegisterRoutes(app *fiber.App) {
@@ -50,7 +50,7 @@ func (h *authHandler) login(c fiber.Ctx) error {
 	if err := c.Bind().Body(&req); err != nil {
 		return err
 	}
-	user, accessToken, refreshToken, err := h.useCase.Login(req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.usecase.Login(req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecases.ErrUserNotFound) || errors.Is(err, usecases.ErrWrongPassword) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -78,7 +78,7 @@ func (h *authHandler) signup(c fiber.Ctx) error {
         return err
     }
 
-	user, accessToken, refreshToken, err := h.useCase.Register(req.Username, req.DisplayName, req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.usecase.Register(req.Username, req.DisplayName, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecases.ErrEmailExists) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -100,7 +100,7 @@ func (h *authHandler) signup(c fiber.Ctx) error {
 
 func (h *authHandler) logout(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
-    err := h.useCase.Logout(refreshToken)
+    err := h.usecase.Logout(refreshToken)
 
 	h.clearAuthCookies(c)
 
@@ -122,7 +122,7 @@ func (h *authHandler) refresh(c fiber.Ctx) error {
     	return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	
-	user, accessToken, refreshToken, err := h.useCase.RefreshTokens(oldRefreshToken)
+	user, accessToken, refreshToken, err := h.usecase.RefreshTokens(oldRefreshToken)
 	if err != nil {
 		h.log.Warn().Err(err).Msg("token refresh failed")
 		return c.SendStatus(fiber.StatusUnauthorized)
