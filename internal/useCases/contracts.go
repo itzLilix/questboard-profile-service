@@ -1,10 +1,10 @@
-package useCases
+package usecases
 
 import (
 	"time"
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
-	dtos "github.com/itzLilix/questboard-shared/DTOs"
+	"github.com/itzLilix/questboard-shared/dtos"
 )
 
 type AuthRepository interface {

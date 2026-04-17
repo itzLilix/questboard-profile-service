@@ -3,7 +3,7 @@ package entities
 import (
 	"time"
 
-	dtos "github.com/itzLilix/questboard-shared/DTOs"
+	"github.com/itzLilix/questboard-shared/dtos"
 )
 
 type User struct {

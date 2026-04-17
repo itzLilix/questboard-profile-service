@@ -1,4 +1,4 @@
-package useCases
+package usecases
 
 type UsersUseCase interface{}
 

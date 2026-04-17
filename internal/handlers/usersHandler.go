@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/itzLilix/questboard-profile-service/internal/useCases"
+	"github.com/itzLilix/questboard-profile-service/internal/usecases"
 )
 
 type UsersHandler interface {
@@ -10,10 +10,10 @@ type UsersHandler interface {
 }
 
 type usersHandler struct {
-	service useCases.UsersUseCase
+	service usecases.UsersUseCase
 }
 
-func NewHandler(service useCases.UsersUseCase) UsersHandler {
+func NewHandler(service usecases.UsersUseCase) UsersHandler {
 	return &usersHandler{service: service}
 }
 

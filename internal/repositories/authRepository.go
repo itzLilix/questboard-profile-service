@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
-	dtos "github.com/itzLilix/questboard-shared/DTOs"
+	"github.com/itzLilix/questboard-shared/dtos"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"

@@ -1,4 +1,4 @@
-package useCases
+package usecases
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/itzLilix/questboard-profile-service/internal/repositories"
-	dtos "github.com/itzLilix/questboard-shared/DTOs"
+	"github.com/itzLilix/questboard-shared/dtos"
 )
 
 type AuthUseCase interface {

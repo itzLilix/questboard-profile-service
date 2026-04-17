@@ -11,7 +11,7 @@ import (
 	"github.com/itzLilix/questboard-profile-service/internal/handlers"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
 	"github.com/itzLilix/questboard-profile-service/internal/repositories"
-	"github.com/itzLilix/questboard-profile-service/internal/useCases"
+	"github.com/itzLilix/questboard-profile-service/internal/usecases"
 	"github.com/itzLilix/questboard-shared/hash"
 	"github.com/itzLilix/questboard-shared/jwt"
 	"github.com/joho/godotenv"
@@ -55,7 +55,7 @@ func main() {
 	passwordHasher := hash.NewPasswordHasher()
 
 	authRepo := repositories.NewAuthRepository(conn)
-	authService := useCases.NewAuthUseCase(authRepo, tokenProvider, passwordHasher)
+	authService := usecases.NewAuthUseCase(authRepo, tokenProvider, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
 	authHandler.RegisterRoutes(app)

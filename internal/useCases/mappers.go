@@ -1,15 +1,15 @@
-package useCases
+package usecases
 
 import (
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
-	dtos "github.com/itzLilix/questboard-shared/DTOs"
+	"github.com/itzLilix/questboard-shared/dtos"
 )
 
 func mapUserToPublicProfile(user *entities.User) *dtos.PublicProfile {
 	if user == nil {
 		return nil
 	}
-	
+
 	return &dtos.PublicProfile{
 		ID:             user.ID,
 		Username:       user.Username,
