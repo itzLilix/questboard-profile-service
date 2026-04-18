@@ -21,7 +21,11 @@ type AuthRepository interface {
 type UsersRepository interface {
 	GetUserByUsername(username string) (*entities.User, error)
 	GetUserByID(id string) (*entities.User, error)
+	GetUserIDByUsername(username string) (string, error)
 	UpdateUser(input *repositories.UpdateUserParams) (*entities.User, error)
+	Follow(followerID, followedID string) error
+	Unfollow(followerID, followedID string) error
+	IsFollowing(followerID, followedID string) (bool, error)
 }
 
 type TokenProvider interface{

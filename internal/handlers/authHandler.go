@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/config"
@@ -25,7 +23,6 @@ type authHandler struct {
 const (
 	accessCookie = "access_token"
 	refreshCookie = "refresh_token"
-	accessTokenExpCookie = "access_token_exp"
 )
 
 func NewAuthHandler(usecase usecases.AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
@@ -150,14 +147,6 @@ func (h *authHandler) setAuthCookies(c fiber.Ctx, accessToken, refreshToken stri
         Secure:   true,
         SameSite: "Strict",
     })
-	c.Cookie(&fiber.Cookie{
-		Name:     accessTokenExpCookie,
-		Value:    strconv.FormatInt(time.Now().Add(h.cfg.AccessTTL).Unix(), 10),
-		Path:     "/",
-		HTTPOnly: false,
-		Secure:   true,
-		SameSite: "Strict",
-	})
 }
 
 func (h *authHandler) clearAuthCookies(c fiber.Ctx) {
@@ -179,12 +168,4 @@ func (h *authHandler) clearAuthCookies(c fiber.Ctx) {
         Secure:   true,
         SameSite: "Strict",
     })
-	c.Cookie(&fiber.Cookie{
-		Name:     accessTokenExpCookie,
-		Value:    "",
-		Path:     "/",
-		HTTPOnly: false,
-		Secure:   true,
-		SameSite: "Strict",
-	})
 }

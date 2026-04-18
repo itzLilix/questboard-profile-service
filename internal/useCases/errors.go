@@ -18,6 +18,8 @@ var (
 	ErrInvalidDisplayName = errors.New("invalid display name")
 	ErrInvalidURL         = errors.New("invalid url")
 	ErrInvalidBio         = errors.New("invalid bio")
+
+	ErrCannotFollowSelf = errors.New("cannot follow yourself")
 )
 
 func wrapInvalidDataError(err error) error {

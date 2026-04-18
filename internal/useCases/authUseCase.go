@@ -11,11 +11,11 @@ import (
 )
 
 type AuthUsecase interface {
-	Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error)
-	Login(username, password string) (*dtos.PrivateProfile, string, string, error)
+	Register(username, displayname, email, password string) (*dtos.PrivateProfileData, string, string, error)
+	Login(username, password string) (*dtos.PrivateProfileData, string, string, error)
 	Logout(refreshToken string) error
-	ValidateToken(tokenString string) (*dtos.PrivateProfile, error)
-	RefreshTokens(refreshToken string) (*dtos.PrivateProfile, string, string, error)
+	ValidateToken(tokenString string) (*dtos.PrivateProfileData, error)
+	RefreshTokens(refreshToken string) (*dtos.PrivateProfileData, string, string, error)
 }
 
 type authUsecase struct {
@@ -32,7 +32,7 @@ func NewAuthUsecase(repo AuthRepository, tokenProvider TokenProvider, passwordHa
 	return &authUsecase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
 }
 
-func (s *authUsecase) ValidateToken(tokenString string) (*dtos.PrivateProfile, error) {
+func (s *authUsecase) ValidateToken(tokenString string) (*dtos.PrivateProfileData, error) {
 	claims, err := s.tokenProvider.ParseToken(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("validateToken: parse token: %w", err)
@@ -46,7 +46,7 @@ func (s *authUsecase) ValidateToken(tokenString string) (*dtos.PrivateProfile, e
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *authUsecase) Register(username, displayname, email, password string) (*dtos.PrivateProfile, string, string, error) {
+func (s *authUsecase) Register(username, displayname, email, password string) (*dtos.PrivateProfileData, string, string, error) {
 	passwordHash, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
@@ -97,7 +97,7 @@ func (s *authUsecase) Register(username, displayname, email, password string) (*
 	return mapUserToPrivateProfile(user), accessToken, refreshToken, nil
 }
 
-func (s *authUsecase) Login(email, password string) (*dtos.PrivateProfile, string, string, error) {
+func (s *authUsecase) Login(email, password string) (*dtos.PrivateProfileData, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, repositories.ErrUserNotFound) {
@@ -173,7 +173,7 @@ func (s *authUsecase) generateRefreshToken(user *entities.User) (string, error) 
 	return tokenString, nil
 }
 
-func (s *authUsecase) RefreshTokens(clientToken string) (*dtos.PrivateProfile, string, string, error) {
+func (s *authUsecase) RefreshTokens(clientToken string) (*dtos.PrivateProfileData, string, string, error) {
 	if len(clientToken) < refreshTokenPrefixLength {
     	return nil, "", "", ErrInvalidToken
 	}

@@ -58,6 +58,20 @@ func (r *usersRepository) GetUserByID(id string) (*entities.User, error) {
 	return user, nil
 }
 
+func (r *usersRepository) GetUserIDByUsername(username string) (string, error) {
+	row := r.db.QueryRow(context.Background(),
+		"SELECT id FROM users WHERE username=$1", username)
+	var id string
+	err := row.Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrUserNotFound
+		}
+		return "", fmt.Errorf("get user id by username: %w", err)
+	}
+	return id, nil
+}
+
 func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, error) {
 	q := `UPDATE users SET `
 	qParts := make([]string, 0, 2)
@@ -107,4 +121,40 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 		return nil, fmt.Errorf("update user: %w", err)
 	}
 	return user, nil
+}
+
+func (r *usersRepository) Follow(followerID, followedID string) error {
+    _, err := r.db.Exec(context.Background(),
+        `INSERT INTO follows (follower_id, followed_id) VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        followerID, followedID)
+    if err != nil {
+        var pgErr *pgconn.PgError
+        if errors.As(err, &pgErr) && pgErr.Code == "23514" {
+            return ErrCannotFollowSelf
+        }
+        return fmt.Errorf("follow user: %w", err)
+    }
+    return nil
+}
+
+func (r *usersRepository) Unfollow(followerID, followedID string) error {
+    _, err := r.db.Exec(context.Background(),
+        `DELETE FROM follows WHERE follower_id=$1 AND followed_id=$2`,
+        followerID, followedID)
+    if err != nil {
+        return fmt.Errorf("unfollow user: %w", err)
+    }
+    return nil
+}
+
+func (r *usersRepository) IsFollowing(followerID, followedID string) (bool, error) {
+    var exists bool
+    err := r.db.QueryRow(context.Background(),
+        `SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id=$1 AND followed_id=$2)`,
+        followerID, followedID).Scan(&exists)
+    if err != nil {
+        return false, fmt.Errorf("is following: %w", err)
+    }
+    return exists, nil
 }

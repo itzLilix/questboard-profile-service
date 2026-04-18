@@ -6,12 +6,12 @@ import (
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
-func mapUserToPublicProfile(user *entities.User) *dtos.PublicProfile {
+func mapUserToPublicProfile(user *entities.User) *dtos.PublicProfileData {
 	if user == nil {
 		return nil
 	}
 
-	return &dtos.PublicProfile{
+	return &dtos.PublicProfileData{
 		ID:             user.ID,
 		Username:       user.Username,
 		DisplayName:    user.DisplayName,
@@ -26,13 +26,13 @@ func mapUserToPublicProfile(user *entities.User) *dtos.PublicProfile {
 	}
 }
 
-func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfile {
+func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfileData {
 	if user == nil {
 		return nil
 	}
 
-	return &dtos.PrivateProfile{
-		PublicProfile:   *mapUserToPublicProfile(user),
+	return &dtos.PrivateProfileData{
+		PublicProfileData:   *mapUserToPublicProfile(user),
 		Email:           user.Email,
 		CreatedAt:       user.CreatedAt,
 		LastLogin:       user.LastLogin,
@@ -41,9 +41,9 @@ func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfile {
 	}
 }
 
-func mapUpdateInputToRepoParams(in *UpdateProfileInput) *repositories.UpdateUserParams {
+func mapUpdateInputToRepoParams(userID string, in *UpdateProfileInput) *repositories.UpdateUserParams {
     return &repositories.UpdateUserParams{
-        UserID:      in.UserID,
+        UserID:      userID,
         Username:    in.Username,
         DisplayName: in.DisplayName,
         AvatarURL:   in.AvatarURL,

@@ -7,4 +7,5 @@ var (
     ErrDuplicateUsername      = errors.New("duplicate username")
     ErrUserNotFound           = errors.New("user not found")
     ErrRefreshTokenNotFound   = errors.New("refresh token not found")
+    ErrCannotFollowSelf       = errors.New("cannot follow yourself")
 )
