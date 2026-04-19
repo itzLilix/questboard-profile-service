@@ -30,7 +30,6 @@ type UpdateProfileInput struct {
 
 type ViewerContext struct {
 	UserID      string
-	IsOwner     bool
 	IsAdmin     bool
 	IsFollowing bool
 }
@@ -55,8 +54,7 @@ func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) 
 	profile := mapUserToPublicProfile(user)
 
 	if viewer.IsAuthenticated() {
-		viewer.IsOwner = viewer.UserID == user.ID
-		if !viewer.IsOwner {
+		if viewer.UserID == user.ID {
 			following, err := s.repo.IsFollowing(viewer.UserID, user.ID)
 			if err != nil {
 				return nil, fmt.Errorf("get public profile: %w", err)
@@ -80,7 +78,6 @@ func (s *usersUsecase) GetPrivateProfile(viewer *ViewerContext) (*dtos.PrivatePr
 		}
 		return nil, fmt.Errorf("get private profile: %w", err)
 	}
-	viewer.IsOwner = true
 	return mapUserToPrivateProfile(user), nil
 }
 
