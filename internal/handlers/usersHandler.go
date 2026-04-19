@@ -88,7 +88,7 @@ func (h *usersHandler) updateProfile(c fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, usecases.ErrInvalidData) {
 			h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("invalid data in updateProfile")
-			return c.SendStatus(fiber.StatusConflict)
+			return c.SendStatus(fiber.StatusBadRequest)
 		}
 		if errors.Is(err, usecases.ErrUserNotFound) {
 			h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("user not found in updateProfile")

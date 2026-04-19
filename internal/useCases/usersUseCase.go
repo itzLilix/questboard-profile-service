@@ -21,11 +21,13 @@ type usersUsecase struct {
 }
 
 type UpdateProfileInput struct {
-	Username    *string
-	DisplayName *string
-	AvatarURL   *string
-	BannerURL   *string
-	Bio         *string
+	Username     *string
+	DisplayName  *string
+	AvatarURL    *string
+	RemoveAvatar bool
+	BannerURL    *string
+	RemoveBanner bool
+	Bio          *string
 }
 
 type ViewerContext struct {
@@ -93,11 +95,17 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 		}
 	}
 	if input.AvatarURL != nil {
+		if input.RemoveAvatar {
+			return nil, ErrInvalidData
+		}
 		if err := validateURL(*input.AvatarURL); err != nil {
 			return nil, wrapInvalidDataError(err)
 		}
 	}
 	if input.BannerURL != nil {
+		if input.RemoveBanner {
+			return nil, ErrInvalidData
+		}
 		if err := validateURL(*input.BannerURL); err != nil {
 			return nil, wrapInvalidDataError(err)
 		}

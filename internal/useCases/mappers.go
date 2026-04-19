@@ -36,18 +36,20 @@ func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfileData {
 		Email:           user.Email,
 		CreatedAt:       user.CreatedAt,
 		LastLogin:       user.LastLogin,
-		Role:              user.Role,
+		Role:            user.Role,
 		IsEmailVerified: user.IsEmailVerified,
 	}
 }
 
 func mapUpdateInputToRepoParams(userID string, in *UpdateProfileInput) *repositories.UpdateUserParams {
     return &repositories.UpdateUserParams{
-        UserID:      userID,
-        Username:    in.Username,
-        DisplayName: in.DisplayName,
-        AvatarURL:   in.AvatarURL,
-        BannerURL:   in.BannerURL,
-        Bio:         in.Bio,
+        UserID:       userID,
+        Username:     in.Username,
+        DisplayName:  in.DisplayName,
+        AvatarURL:    in.AvatarURL,
+		RemoveAvatar: in.RemoveAvatar,
+        BannerURL:    in.BannerURL,
+		RemoveBanner: in.RemoveBanner,
+        Bio:          in.Bio,
     }
 }

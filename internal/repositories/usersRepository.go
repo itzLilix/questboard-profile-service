@@ -17,12 +17,14 @@ type usersRepository struct {
 }
 
 type UpdateUserParams struct {
-    UserID      string
-    Username    *string
-    DisplayName *string
-    AvatarURL   *string
-    BannerURL   *string
-    Bio         *string
+    UserID       string
+    Username     *string
+    DisplayName  *string
+    AvatarURL    *string
+	RemoveAvatar bool
+    BannerURL    *string
+	RemoveBanner bool
+    Bio          *string
 }
 
 
@@ -85,13 +87,19 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 		qParts = append(qParts, fmt.Sprintf("display_name=$%d", len(args)+1))
 		args = append(args, *input.DisplayName)
 	}
-	if input.AvatarURL != nil {
+	if input.AvatarURL != nil && !input.RemoveAvatar {
 		qParts = append(qParts, fmt.Sprintf("avatar_url=$%d", len(args)+1))
 		args = append(args, *input.AvatarURL)
 	}
-	if input.BannerURL != nil {
+	if input.RemoveAvatar {
+		qParts = append(qParts, "avatar_url=NULL")
+	}
+	if input.BannerURL != nil && !input.RemoveBanner {
 		qParts = append(qParts, fmt.Sprintf("banner_url=$%d", len(args)+1))
 		args = append(args, *input.BannerURL)
+	}
+	if input.RemoveBanner {
+		qParts = append(qParts, "banner_url=NULL")
 	}
 	if input.Bio != nil {
 		qParts = append(qParts, fmt.Sprintf("bio=$%d", len(args)+1))
