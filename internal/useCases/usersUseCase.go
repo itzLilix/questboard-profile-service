@@ -66,7 +66,6 @@ func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) 
 		}
 	} else {
 		(*profile).IsFollowed = false
-		fmt.Println((*profile).IsFollowed)
 	}
 
 	return profile, nil
