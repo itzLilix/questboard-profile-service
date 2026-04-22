@@ -5,7 +5,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const userCols = "id, username, password_hash, email, created_at, last_login, avatar_url, banner_url, role, display_name, is_email_verified, sessions_played, sessions_hosted, rating, reviews_count, bio, links"
+const userCols = "id, username, password_hash, email, created_at, last_login, profile_picture, banner_picture, role, display_name, is_email_verified, sessions_played, sessions_hosted, rating, reviews_count, bio, links"
 
 
 func scanUser(row pgx.Row, user *entities.User) error {
