@@ -1,8 +1,8 @@
-package usecases
+package usecase
 
 import (
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
-	"github.com/itzLilix/questboard-profile-service/internal/repositories"
+	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -41,8 +41,8 @@ func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfileData {
 	}
 }
 
-func mapUpdateInputToRepoParams(userID string, in *UpdateProfileInput) *repositories.UpdateUserParams {
-    return &repositories.UpdateUserParams{
+func mapUpdateInputToRepoParams(userID string, in *UpdateProfileInput) *infrastructure.UpdateUserParams {
+    return &infrastructure.UpdateUserParams{
         UserID:       userID,
         Username:     in.Username,
         DisplayName:  in.DisplayName,

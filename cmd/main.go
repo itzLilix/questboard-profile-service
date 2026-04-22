@@ -4,15 +4,14 @@ import (
 	"os"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/itzLilix/questboard-profile-service/internal/config"
-	"github.com/itzLilix/questboard-profile-service/internal/database"
 	"github.com/itzLilix/questboard-profile-service/internal/handlers"
-	"github.com/itzLilix/questboard-profile-service/internal/hash"
+	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
-	"github.com/itzLilix/questboard-profile-service/internal/repositories"
-	"github.com/itzLilix/questboard-profile-service/internal/usecases"
+	"github.com/itzLilix/questboard-profile-service/internal/usecase"
 	"github.com/itzLilix/questboard-shared/jwt"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -29,6 +28,7 @@ func main() {
 	}
 
 	cfg := config.Load()
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
@@ -38,29 +38,29 @@ func main() {
 	}))
 	app.Use(middleware.Logger(log.Logger))
 
-	conn, err := database.Connect(cfg.DatabaseURL)
+	conn, err := infrastructure.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to database")
 	}
 	log.Info().Msg("successfully connected to database")
 	defer conn.Close()
 
-	err = database.RunMigrations(cfg.MigrateURL)
+	err = infrastructure.RunMigrations(cfg.MigrateURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to run migrations")
 	}
 	log.Info().Msg("migrations ran successfully")
 
 	tokenProvider := jwt.NewTokenProvider([]byte(cfg.JWTSecret), cfg.AccessTTL, cfg.RefreshTTL)
-	passwordHasher := hash.NewPasswordHasher()
+	passwordHasher := infrastructure.NewPasswordHasher()
 	rbacMiddleware := middleware.NewRBACMiddleware(tokenProvider, log.Logger)
 
-	authRepo := repositories.NewAuthRepository(conn)
-	authService := usecases.NewAuthUsecase(authRepo, tokenProvider, passwordHasher)
+	authRepo := infrastructure.NewAuthRepository(conn, psql)
+	authService := usecase.NewAuthUsecase(authRepo, tokenProvider, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
-	usersRepo := repositories.NewUsersRepository(conn)
-	usersService := usecases.NewUsersUsecase(usersRepo)
+	usersRepo := infrastructure.NewUsersRepository(conn, psql)
+	usersService := usecase.NewUsersUsecase(usersRepo)
 	usersHandler := handlers.NewHandler(usersService, log.Logger, rbacMiddleware)
 
 	authHandler.RegisterRoutes(app)

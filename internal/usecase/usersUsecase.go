@@ -1,10 +1,10 @@
-package usecases
+package usecase
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/itzLilix/questboard-profile-service/internal/repositories"
+	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -21,13 +21,14 @@ type usersUsecase struct {
 }
 
 type UpdateProfileInput struct {
-	Username     *string
-	DisplayName  *string
-	AvatarURL    *string
-	RemoveAvatar bool
-	BannerURL    *string
-	RemoveBanner bool
-	Bio          *string
+	Username     *string	`json:"username"`
+	DisplayName  *string	`json:"displayName"`
+	AvatarURL    *string	`json:"avatarURL"`
+	RemoveAvatar bool		`json:"removeAvatar"`
+	BannerURL    *string	`json:"bannerURL"`
+	RemoveBanner bool		`json:"removeBanner"`
+	Bio          *string	`json:"bio"`
+	Links		 []dtos.Link
 }
 
 type ViewerContext struct {
@@ -47,7 +48,7 @@ func NewUsersUsecase(repo UsersRepository) UsersUsecase {
 func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) (*dtos.PublicProfileData, error) {
 	user, err := s.repo.GetUserByUsername(username)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("get public profile: %w", err)
@@ -74,7 +75,7 @@ func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) 
 func (s *usersUsecase) GetPrivateProfile(viewer *ViewerContext) (*dtos.PrivateProfileData, error) {
 	user, err := s.repo.GetUserByID(viewer.UserID)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("get private profile: %w", err)
@@ -117,10 +118,10 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 
 	user, err := s.repo.UpdateUser(mapUpdateInputToRepoParams(viewer.UserID, input))
 	if err != nil {
-		if errors.Is(err, repositories.ErrDuplicateUsername) {
+		if errors.Is(err, infrastructure.ErrDuplicateUsername) {
 			return nil, ErrUsernameExists
 		}
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("update profile: %w", err)
@@ -131,7 +132,7 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 func (s *usersUsecase) Follow(viewer *ViewerContext, targetUsername string) error {
 	followedID, err := s.repo.GetUserIDByUsername(targetUsername)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
 			return ErrUserNotFound
 		}
 		return fmt.Errorf("follow: %w", err)
@@ -151,7 +152,7 @@ func (s *usersUsecase) Follow(viewer *ViewerContext, targetUsername string) erro
 func (s *usersUsecase) Unfollow(viewer *ViewerContext, targetUsername string) error {
 	followedID, err := s.repo.GetUserIDByUsername(targetUsername)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
 			return ErrUserNotFound
 		}
 		return fmt.Errorf("unfollow: %w", err)

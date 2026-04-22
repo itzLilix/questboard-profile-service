@@ -1,9 +1,12 @@
-package repositories
+package infrastructure
 
 import (
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/jackc/pgx/v5"
 )
+
+const userCols = "id, username, password_hash, email, created_at, last_login, avatar_url, banner_url, role, display_name, is_email_verified, sessions_played, sessions_hosted, rating, reviews_count, bio, links"
+
 
 func scanUser(row pgx.Row, user *entities.User) error {
 	return row.Scan(

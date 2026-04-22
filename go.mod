@@ -9,6 +9,12 @@ replace github.com/itzLilix/questboard-shared => ./../questboard-shared
 require github.com/gofiber/fiber/v3 v3.1.0
 
 require (
+	github.com/Masterminds/squirrel v1.5.4 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
+)
+
+require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/gofiber/schema v1.7.0 // indirect
 	github.com/gofiber/utils/v2 v2.0.2 // indirect
@@ -29,7 +35,7 @@ require (
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.70.0
-	golang.org/x/crypto v0.50.0 
+	golang.org/x/crypto v0.50.0
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect

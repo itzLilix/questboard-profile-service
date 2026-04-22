@@ -1,10 +1,10 @@
-package usecases
+package usecase
 
 import (
 	"time"
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
-	"github.com/itzLilix/questboard-profile-service/internal/repositories"
+	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -22,7 +22,7 @@ type UsersRepository interface {
 	GetUserByUsername(username string) (*entities.User, error)
 	GetUserByID(id string) (*entities.User, error)
 	GetUserIDByUsername(username string) (string, error)
-	UpdateUser(input *repositories.UpdateUserParams) (*entities.User, error)
+	UpdateUser(input *infrastructure.UpdateUserParams) (*entities.User, error)
 	Follow(followerID, followedID string) error
 	Unfollow(followerID, followedID string) error
 	IsFollowing(followerID, followedID string) (bool, error)

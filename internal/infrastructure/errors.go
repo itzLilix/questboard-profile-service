@@ -1,6 +1,8 @@
-package repositories
+package infrastructure
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
     ErrDuplicateEmail         = errors.New("duplicate email")

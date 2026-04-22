@@ -1,4 +1,4 @@
-package usecases
+package usecase
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
-	"github.com/itzLilix/questboard-profile-service/internal/repositories"
+	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -76,9 +76,9 @@ func (s *authUsecase) Register(username, displayname, email, password string) (*
 
 	err = s.repo.CreateUser(user)
 	if err != nil {
-		if errors.Is(err, repositories.ErrDuplicateEmail) {
+		if errors.Is(err, infrastructure.ErrDuplicateEmail) {
 			return nil, "", "", ErrEmailExists
-		} else if errors.Is(err, repositories.ErrDuplicateUsername) {
+		} else if errors.Is(err, infrastructure.ErrDuplicateUsername) {
 			return nil, "", "", ErrUsernameExists
 		}
 		return nil, "", "", fmt.Errorf("register: create user: %w", err)
@@ -100,7 +100,7 @@ func (s *authUsecase) Register(username, displayname, email, password string) (*
 func (s *authUsecase) Login(email, password string) (*dtos.PrivateProfileData, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
 			return nil, "", "", ErrUserNotFound
 		}
 		return nil, "", "", fmt.Errorf("login: get user: %w", err)
@@ -181,7 +181,7 @@ func (s *authUsecase) RefreshTokens(clientToken string) (*dtos.PrivateProfileDat
 	prefix := clientToken[:refreshTokenPrefixLength]
 	storedToken, err := s.repo.GetRefreshTokenByPrefix(prefix)
 	if err != nil {
-		if errors.Is(err, repositories.ErrRefreshTokenNotFound) {
+		if errors.Is(err, infrastructure.ErrRefreshTokenNotFound) {
 			return nil, "", "", ErrInvalidToken
 		}
 		return nil, "", "", fmt.Errorf("refresh tokens: get refresh token: %w", err)

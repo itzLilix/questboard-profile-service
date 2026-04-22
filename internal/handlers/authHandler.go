@@ -5,7 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/config"
-	"github.com/itzLilix/questboard-profile-service/internal/usecases"
+	"github.com/itzLilix/questboard-profile-service/internal/usecase"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
@@ -15,7 +15,7 @@ type AuthHandler interface {
 }
 
 type authHandler struct {
-	usecase usecases.AuthUsecase
+	usecase usecase.AuthUsecase
 	log     zerolog.Logger
 	cfg    *config.Config
 }
@@ -25,7 +25,7 @@ const (
 	refreshCookie = "refresh_token"
 )
 
-func NewAuthHandler(usecase usecases.AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
+func NewAuthHandler(usecase usecase.AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
 	return &authHandler{usecase: usecase, log: log, cfg: cfg}
 }
 
@@ -49,7 +49,7 @@ func (h *authHandler) login(c fiber.Ctx) error {
 	}
 	user, accessToken, refreshToken, err := h.usecase.Login(req.Email, req.Password)
 	if err != nil {
-		if errors.Is(err, usecases.ErrUserNotFound) || errors.Is(err, usecases.ErrWrongPassword) {
+		if errors.Is(err, usecase.ErrUserNotFound) || errors.Is(err, usecase.ErrWrongPassword) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"message": "Неверная почта или пароль",
 			})
@@ -77,11 +77,11 @@ func (h *authHandler) signup(c fiber.Ctx) error {
 
 	user, accessToken, refreshToken, err := h.usecase.Register(req.Username, req.DisplayName, req.Email, req.Password)
 	if err != nil {
-		if errors.Is(err, usecases.ErrEmailExists) {
+		if errors.Is(err, usecase.ErrEmailExists) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 				"message": "Почта уже зарегестрирована",
 			})
-		} else if errors.Is(err, usecases.ErrUsernameExists) {
+		} else if errors.Is(err, usecase.ErrUsernameExists) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 				"message": "Пользователь с таким именем уже существует",
 			})
