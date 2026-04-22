@@ -94,19 +94,19 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 		setCount++
 	}
 	if input.AvatarURL != nil && !input.RemoveAvatar {
-		builder = builder.Set("avatar_url", *input.AvatarURL)
+		builder = builder.Set("profile_picture", *input.AvatarURL)
 		setCount++
 	}
 	if input.RemoveAvatar {
-		builder = builder.Set("avatar_url", nil)
+		builder = builder.Set("profile_picture", nil)
 		setCount++
 	}
 	if input.BannerURL != nil && !input.RemoveBanner {
-		builder = builder.Set("banner_url", *input.BannerURL)
+		builder = builder.Set("banner_picture", *input.BannerURL)
 		setCount++
 	}
 	if input.RemoveBanner {
-		builder = builder.Set("banner_url", nil)
+		builder = builder.Set("banner_picture", nil)
 		setCount++
 	}
 	if input.Bio != nil {

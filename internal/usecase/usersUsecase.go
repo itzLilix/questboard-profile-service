@@ -13,10 +13,10 @@ type UsersUsecase interface {
 	GetPublicProfile(viewer *ViewerContext, username string) (*dtos.PublicProfileData, error)
 	GetPrivateProfile(viewer *ViewerContext) (*dtos.PrivateProfileData, error)
 	UpdateProfile(viewer *ViewerContext, input *UpdateProfileInput) (*dtos.PrivateProfileData, error)
-	UpdateAvatar(viewer *ViewerContext, file *multipart.FileHeader) (string, error)
-	RemoveAvatar(viewer *ViewerContext) error
-	UpdateBanner(viewer *ViewerContext, file *multipart.FileHeader) (string, error)
-	RemoveBanner(viewer *ViewerContext) error
+	UpdateAvatar(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
+	RemoveAvatar(viewer *ViewerContext) (*dtos.PrivateProfileData, error)
+	UpdateBanner(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
+	RemoveBanner(viewer *ViewerContext) (*dtos.PrivateProfileData, error)
 	Follow(viewer *ViewerContext, targetUsername string) error
 	Unfollow(viewer *ViewerContext, targetUsername string) error
 }
@@ -103,26 +103,32 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *usersUsecase) UpdateAvatar(viewer *ViewerContext, file *multipart.FileHeader) (string, error) {
+func (s *usersUsecase) UpdateAvatar(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error) {
 	return s.uploadImage(viewer.UserID, file, "avatars", func(url *string) *infrastructure.UpdateUserParams {
 		return &infrastructure.UpdateUserParams{UserID: viewer.UserID, AvatarURL: url}
 	})
 }
 
-func (s *usersUsecase) RemoveAvatar(viewer *ViewerContext) error {
-	_, err := s.repo.UpdateUser(&infrastructure.UpdateUserParams{UserID: viewer.UserID, RemoveAvatar: true})
-	return mapRepoErr("remove avatar", err)
+func (s *usersUsecase) RemoveAvatar(viewer *ViewerContext) (*dtos.PrivateProfileData, error) {
+	user, err := s.repo.UpdateUser(&infrastructure.UpdateUserParams{UserID: viewer.UserID, RemoveAvatar: true})
+	if err != nil {
+		return nil, mapRepoErr("remove avatar", err)
+	}
+	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *usersUsecase) UpdateBanner(viewer *ViewerContext, file *multipart.FileHeader) (string, error) {
+func (s *usersUsecase) UpdateBanner(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error) {
 	return s.uploadImage(viewer.UserID, file, "banners", func(url *string) *infrastructure.UpdateUserParams {
 		return &infrastructure.UpdateUserParams{UserID: viewer.UserID, BannerURL: url}
 	})
 }
 
-func (s *usersUsecase) RemoveBanner(viewer *ViewerContext) error {
-	_, err := s.repo.UpdateUser(&infrastructure.UpdateUserParams{UserID: viewer.UserID, RemoveBanner: true})
-	return mapRepoErr("remove banner", err)
+func (s *usersUsecase) RemoveBanner(viewer *ViewerContext) (*dtos.PrivateProfileData, error) {
+	user, err := s.repo.UpdateUser(&infrastructure.UpdateUserParams{UserID: viewer.UserID, RemoveBanner: true})
+	if err != nil {
+		return nil, mapRepoErr("remove banner", err)
+	}
+	return mapUserToPrivateProfile(user), nil
 }
 
 func (s *usersUsecase) uploadImage(
@@ -130,22 +136,23 @@ func (s *usersUsecase) uploadImage(
 	file *multipart.FileHeader,
 	subdir string,
 	buildParams func(url *string) *infrastructure.UpdateUserParams,
-) (string, error) {
+) (*dtos.PrivateProfileData, error) {
 	url, err := s.images.Upload(file, subdir)
 	if err != nil {
 		if errors.Is(err, infrastructure.ErrFileTooLarge) {
-			return "", ErrFileTooLarge
+			return nil, ErrFileTooLarge
 		}
 		if errors.Is(err, infrastructure.ErrInvalidFileType) {
-			return "", ErrInvalidFileType
+			return nil, ErrInvalidFileType
 		}
-		return "", fmt.Errorf("upload %s: %w", subdir, err)
+		return nil, fmt.Errorf("upload %s: %w", subdir, err)
 	}
 
-	if _, err := s.repo.UpdateUser(buildParams(&url)); err != nil {
-		return "", mapRepoErr("upload "+subdir, err)
+	user, err := s.repo.UpdateUser(buildParams(&url)); 
+	if err != nil {
+		return nil, mapRepoErr("upload "+subdir, err)
 	}
-	return url, nil
+	return mapUserToPrivateProfile(user), nil
 }
 
 func (s *usersUsecase) Follow(viewer *ViewerContext, targetUsername string) error {

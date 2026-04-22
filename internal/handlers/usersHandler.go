@@ -119,19 +119,20 @@ func (h *usersHandler) updateAvatar(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	url, err := h.usecase.UpdateAvatar(viewer, file)
+	user, err := h.usecase.UpdateAvatar(viewer, file)
 	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "avatar")
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"avatarURL": url})
+	return c.Status(fiber.StatusOK).JSON(user)
 }
 
 func (h *usersHandler) removeAvatar(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
-	if err := h.usecase.RemoveAvatar(viewer); err != nil {
+	user, err := h.usecase.RemoveAvatar(viewer)
+	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "avatar")
 	}
-	return c.SendStatus(fiber.StatusNoContent)
+	return c.Status(fiber.StatusOK).JSON(user)
 }
 
 func (h *usersHandler) updateBanner(c fiber.Ctx) error {
@@ -143,19 +144,20 @@ func (h *usersHandler) updateBanner(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	url, err := h.usecase.UpdateBanner(viewer, file)
+	user, err := h.usecase.UpdateBanner(viewer, file)
 	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "banner")
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"bannerURL": url})
+	return c.Status(fiber.StatusOK).JSON(user)
 }
 
 func (h *usersHandler) removeBanner(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
-	if err := h.usecase.RemoveBanner(viewer); err != nil {
+	user, err := h.usecase.RemoveBanner(viewer);
+	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "banner")
 	}
-	return c.SendStatus(fiber.StatusNoContent)
+	return c.Status(fiber.StatusOK).JSON(user)
 }
 
 func (h *usersHandler) handleImageErr(c fiber.Ctx, userID string, err error, kind string) error {
