@@ -30,6 +30,11 @@ func (h *usersHandler) RegisterRoutes(app *fiber.App) {
 	//users.Get("/me", h.rbac.Protected(), h.getMyProfile)
 	users.Patch("/me", h.rbac.Protected(), h.updateProfile)
 
+	users.Put("/me/avatar", h.rbac.Protected(), h.updateAvatar)
+	users.Delete("/me/avatar", h.rbac.Protected(), h.removeAvatar)
+	users.Put("/me/banner", h.rbac.Protected(), h.updateBanner)
+	users.Delete("/me/banner", h.rbac.Protected(), h.removeBanner)
+
 	users.Post("/:username/follow", h.rbac.Protected(), h.followUser)
 	users.Delete("/:username/follow", h.rbac.Protected(), h.unfollowUser)
 }
@@ -103,6 +108,67 @@ func (h *usersHandler) updateProfile(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(user)
+}
+
+func (h *usersHandler) updateAvatar(c fiber.Ctx) error {
+	viewer := viewerFromCtx(c)
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("missing avatar file in updateAvatar")
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	url, err := h.usecase.UpdateAvatar(viewer, file)
+	if err != nil {
+		return h.handleImageErr(c, viewer.UserID, err, "avatar")
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"avatarURL": url})
+}
+
+func (h *usersHandler) removeAvatar(c fiber.Ctx) error {
+	viewer := viewerFromCtx(c)
+	if err := h.usecase.RemoveAvatar(viewer); err != nil {
+		return h.handleImageErr(c, viewer.UserID, err, "avatar")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *usersHandler) updateBanner(c fiber.Ctx) error {
+	viewer := viewerFromCtx(c)
+
+	file, err := c.FormFile("banner")
+	if err != nil {
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("missing banner file in updateBanner")
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	url, err := h.usecase.UpdateBanner(viewer, file)
+	if err != nil {
+		return h.handleImageErr(c, viewer.UserID, err, "banner")
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"bannerURL": url})
+}
+
+func (h *usersHandler) removeBanner(c fiber.Ctx) error {
+	viewer := viewerFromCtx(c)
+	if err := h.usecase.RemoveBanner(viewer); err != nil {
+		return h.handleImageErr(c, viewer.UserID, err, "banner")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *usersHandler) handleImageErr(c fiber.Ctx, userID string, err error, kind string) error {
+	if errors.Is(err, usecase.ErrFileTooLarge) || errors.Is(err, usecase.ErrInvalidFileType) {
+		h.log.Error().Err(err).Str("userID", userID).Msgf("invalid %s upload", kind)
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+	if errors.Is(err, usecase.ErrUserNotFound) {
+		h.log.Error().Err(err).Str("userID", userID).Msgf("user not found in %s operation", kind)
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	h.log.Error().Err(err).Str("userID", userID).Msgf("error in %s operation", kind)
+	return c.SendStatus(fiber.StatusInternalServerError)
 }
 
 func (h *usersHandler) followUser(c fiber.Ctx) error {

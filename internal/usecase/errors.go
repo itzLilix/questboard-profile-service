@@ -20,6 +20,9 @@ var (
 	ErrInvalidBio         = errors.New("invalid bio")
 
 	ErrCannotFollowSelf = errors.New("cannot follow yourself")
+
+	ErrFileTooLarge    = errors.New("file too large")
+	ErrInvalidFileType = errors.New("invalid file type")
 )
 
 func wrapInvalidDataError(err error) error {

@@ -1,10 +1,30 @@
 package usecase
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
+
+func mapRepoErr(op string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, infrastructure.ErrUserNotFound) {
+		return ErrUserNotFound
+	}
+	if errors.Is(err, infrastructure.ErrDuplicateUsername) {
+		return ErrUsernameExists
+	}
+	if errors.Is(err, infrastructure.ErrDuplicateEmail) {
+		return ErrEmailExists
+	}
+	return fmt.Errorf("%s: %w", op, err)
+}
+
 
 func mapUserToPublicProfile(user *entities.User) *dtos.PublicProfileData {
 	if user == nil {
@@ -42,14 +62,11 @@ func mapUserToPrivateProfile(user *entities.User) *dtos.PrivateProfileData {
 }
 
 func mapUpdateInputToRepoParams(userID string, in *UpdateProfileInput) *infrastructure.UpdateUserParams {
-    return &infrastructure.UpdateUserParams{
-        UserID:       userID,
-        Username:     in.Username,
-        DisplayName:  in.DisplayName,
-        AvatarURL:    in.AvatarURL,
-		RemoveAvatar: in.RemoveAvatar,
-        BannerURL:    in.BannerURL,
-		RemoveBanner: in.RemoveBanner,
-        Bio:          in.Bio,
-    }
+	return &infrastructure.UpdateUserParams{
+		UserID:      userID,
+		Username:    in.Username,
+		DisplayName: in.DisplayName,
+		Bio:         in.Bio,
+		Links:       in.Links,
+	}
 }

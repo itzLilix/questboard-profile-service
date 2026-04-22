@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/itzLilix/questboard-profile-service/internal/config"
 	"github.com/itzLilix/questboard-profile-service/internal/handlers"
 	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
@@ -38,6 +39,8 @@ func main() {
 	}))
 	app.Use(middleware.Logger(log.Logger))
 
+	app.Get("/uploads/*", static.New(cfg.UploadDir))
+
 	conn, err := infrastructure.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to database")
@@ -59,8 +62,9 @@ func main() {
 	authService := usecase.NewAuthUsecase(authRepo, tokenProvider, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
+	imageUploader := infrastructure.NewLocalImageUploader(cfg.UploadDir, cfg.PublicBaseURL, cfg.MaxUploadSize)
 	usersRepo := infrastructure.NewUsersRepository(conn, psql)
-	usersService := usecase.NewUsersUsecase(usersRepo)
+	usersService := usecase.NewUsersUsecase(usersRepo, imageUploader)
 	usersHandler := handlers.NewHandler(usersService, log.Logger, rbacMiddleware)
 
 	authHandler.RegisterRoutes(app)

@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"mime/multipart"
 	"time"
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
@@ -38,4 +39,8 @@ type TokenProvider interface{
 type PasswordHasher interface {
 	HashPassword(password string) (string, error)
 	CompareHashAndPassword(hash, password string) error
+}
+
+type ImageUploader interface {
+	Upload(file *multipart.FileHeader, subdir string) (string, error)
 }

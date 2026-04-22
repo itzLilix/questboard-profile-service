@@ -76,12 +76,7 @@ func (s *authUsecase) Register(username, displayname, email, password string) (*
 
 	err = s.repo.CreateUser(user)
 	if err != nil {
-		if errors.Is(err, infrastructure.ErrDuplicateEmail) {
-			return nil, "", "", ErrEmailExists
-		} else if errors.Is(err, infrastructure.ErrDuplicateUsername) {
-			return nil, "", "", ErrUsernameExists
-		}
-		return nil, "", "", fmt.Errorf("register: create user: %w", err)
+		return nil, "", "", mapRepoErr("register: create user", err)
 	}
 
 	accessToken, err := s.generateAccessToken(user)
@@ -100,10 +95,7 @@ func (s *authUsecase) Register(username, displayname, email, password string) (*
 func (s *authUsecase) Login(email, password string) (*dtos.PrivateProfileData, string, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
-		if errors.Is(err, infrastructure.ErrUserNotFound) {
-			return nil, "", "", ErrUserNotFound
-		}
-		return nil, "", "", fmt.Errorf("login: get user: %w", err)
+		return nil, "", "", mapRepoErr("login: get user", err)
 	}
 
 	err = s.passwordHasher.CompareHashAndPassword(user.PasswordHash, password)
