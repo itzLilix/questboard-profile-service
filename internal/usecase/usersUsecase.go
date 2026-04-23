@@ -96,7 +96,7 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 			return nil, wrapInvalidDataError(err)
 		}
 	}
-	if input.Links != nil && len(input.Links) > 0 {
+	if len(input.Links) > 0 {
 		links := make([]dtos.Link, 0, len(input.Links))
 		for _, inLink := range input.Links {
 			if link, err := validateAndNormalize(inLink); err != nil {
@@ -106,7 +106,7 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 				links = append(links, link)
 			}
 		}
-		if links == nil || len(links) == 0 {
+		if len(links) == 0 {
 			return nil, ErrInvalidData
 		}
 		input.Links = links
