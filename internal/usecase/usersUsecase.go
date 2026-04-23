@@ -95,6 +95,21 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 			return nil, wrapInvalidDataError(err)
 		}
 	}
+	if input.Links != nil && len(input.Links) > 0 {
+		links := make([]dtos.Link, 0, len(input.Links))
+		for _, inLink := range input.Links {
+			if link, err := validateAndNormalize(inLink); err != nil {
+				links = nil
+				return nil, wrapInvalidDataError(err)
+			} else {
+				links = append(links, link)
+			}
+		}
+		if links == nil || len(links) == 0 {
+			return nil, ErrInvalidData
+		}
+		input.Links = links
+	}
 
 	user, err := s.repo.UpdateUser(mapUpdateInputToRepoParams(viewer.UserID, input))
 	if err != nil {
