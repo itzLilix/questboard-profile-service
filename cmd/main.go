@@ -13,6 +13,7 @@ import (
 	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
 	"github.com/itzLilix/questboard-profile-service/internal/usecase"
+	"github.com/itzLilix/questboard-shared/images"
 	"github.com/itzLilix/questboard-shared/jwt"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -62,7 +63,7 @@ func main() {
 	authService := usecase.NewAuthUsecase(authRepo, tokenProvider, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
-	imageUploader := infrastructure.NewLocalImageUploader(cfg.UploadDir, cfg.PublicBaseURL, cfg.MaxUploadSize)
+	imageUploader := images.NewLocalImageUploader(cfg.UploadDir, cfg.PublicBaseURL, cfg.MaxUploadSize)
 	usersRepo := infrastructure.NewUsersRepository(conn, psql)
 	usersService := usecase.NewUsersUsecase(usersRepo, imageUploader)
 	usersHandler := handlers.NewHandler(usersService, log.Logger, rbacMiddleware)
