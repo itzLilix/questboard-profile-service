@@ -113,9 +113,13 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 		builder = builder.Set("bio", *input.Bio)
 		setCount++
 	}
+	if input.Links != nil {
+		builder = builder.Set("links", input.Links)
+		setCount++
+	}
 
 	if setCount == 0 {
-		return nil, nil
+		return nil, ErrNoNewData
 	}
 
 	sql, args, err := builder.Where(sq.Eq{"id": input.UserID}).Suffix("RETURNING " + userCols).ToSql()

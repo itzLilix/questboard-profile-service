@@ -98,6 +98,9 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 
 	user, err := s.repo.UpdateUser(mapUpdateInputToRepoParams(viewer.UserID, input))
 	if err != nil {
+		if errors.Is(err, infrastructure.ErrNoNewData) {
+			return nil, wrapInvalidDataError(err)
+		}
 		return nil, mapRepoErr("update profile", err)
 	}
 	return mapUserToPrivateProfile(user), nil

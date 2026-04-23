@@ -4,6 +4,7 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"unicode/utf8"
 )
 
 const (
@@ -37,7 +38,7 @@ func validateUsername(username string) error {
 }
 
 func validateDisplayName(displayName string) error {
-	if displayName == "" || len(displayName) > maxDisplayNameLen {
+	if displayName == "" || utf8.RuneCountInString(displayName) > maxDisplayNameLen {
 		return ErrInvalidDisplayName
 	}
 	return nil
