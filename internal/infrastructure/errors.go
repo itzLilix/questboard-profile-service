@@ -10,7 +10,5 @@ var (
     ErrUserNotFound           = errors.New("user not found")
     ErrRefreshTokenNotFound   = errors.New("refresh token not found")
     ErrCannotFollowSelf       = errors.New("cannot follow yourself")
-    ErrFileTooLarge           = errors.New("file too large")
-    ErrInvalidFileType        = errors.New("invalid file type")
 	ErrNoNewData			  = errors.New("no new data in request")
 )

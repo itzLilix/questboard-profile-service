@@ -7,6 +7,7 @@ import (
 
 	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
 	"github.com/itzLilix/questboard-shared/dtos"
+	"github.com/itzLilix/questboard-shared/images"
 )
 
 type UsersUsecase interface {
@@ -157,10 +158,10 @@ func (s *usersUsecase) uploadImage(
 ) (*dtos.PrivateProfileData, error) {
 	url, err := s.images.Upload(file, subdir)
 	if err != nil {
-		if errors.Is(err, infrastructure.ErrFileTooLarge) {
+		if errors.Is(err, images.ErrFileTooLarge) {
 			return nil, ErrFileTooLarge
 		}
-		if errors.Is(err, infrastructure.ErrInvalidFileType) {
+		if errors.Is(err, images.ErrInvalidFileType) {
 			return nil, ErrInvalidFileType
 		}
 		return nil, fmt.Errorf("upload %s: %w", subdir, err)
