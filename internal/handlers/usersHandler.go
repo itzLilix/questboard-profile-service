@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
 	"github.com/itzLilix/questboard-profile-service/internal/usecase"
-	"github.com/itzLilix/questboard-shared/dtos"
 	"github.com/rs/zerolog"
 )
 
@@ -20,7 +19,7 @@ type usersHandler struct {
 	usecase usecase.UsersUsecase
 }
 
-func NewHandler(usecase usecase.UsersUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware) UsersHandler {
+func NewUsersHandler(usecase usecase.UsersUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware) UsersHandler {
 	return &usersHandler{usecase: usecase, log: log, rbac: rbac}
 }
 
@@ -37,17 +36,6 @@ func (h *usersHandler) RegisterRoutes(app *fiber.App) {
 
 	users.Post("/:username/follow", h.rbac.Protected(), h.followUser)
 	users.Delete("/:username/follow", h.rbac.Protected(), h.unfollowUser)
-}
-
-func viewerFromCtx(c fiber.Ctx) *usecase.ViewerContext {
-	v := &usecase.ViewerContext{}
-	if id, ok := c.Locals(middleware.LocalsUserID).(string); ok {
-		v.UserID = id
-	}
-	if role, ok := c.Locals(middleware.LocalsUserRole).(dtos.Role); ok {
-		v.IsAdmin = role == dtos.AdminRole
-	}
-	return v
 }
 
 func (h *usersHandler) getProfileByUsername(c fiber.Ctx) error {

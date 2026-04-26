@@ -66,7 +66,7 @@ func main() {
 	imageUploader := images.NewLocalImageUploader(cfg.UploadDir, cfg.PublicBaseURL, cfg.MaxUploadSize)
 	usersRepo := infrastructure.NewUsersRepository(conn, psql)
 	usersService := usecase.NewUsersUsecase(usersRepo, imageUploader)
-	usersHandler := handlers.NewHandler(usersService, log.Logger, rbacMiddleware)
+	usersHandler := handlers.NewUsersHandler(usersService, log.Logger, rbacMiddleware)
 
 	authHandler.RegisterRoutes(app)
 	usersHandler.RegisterRoutes(app)

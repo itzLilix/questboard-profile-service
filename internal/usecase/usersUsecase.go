@@ -34,18 +34,15 @@ type UpdateProfileInput struct {
 	Links       []dtos.Link `json:"links"`
 }
 
-type ViewerContext struct {
-	UserID      string
-	IsAdmin     bool
-	IsFollowing bool
-}
-
-func (v *ViewerContext) IsAuthenticated() bool {
-	return v != nil && v.UserID != ""
-}
-
 func NewUsersUsecase(repo UsersRepository, images ImageUploader) UsersUsecase {
 	return &usersUsecase{repo: repo, images: images}
+}
+
+func (s *usersUsecase) isFollowing(viewer *ViewerContext, targetID string) (bool, error) {
+    if !viewer.IsAuthenticated() || viewer.UserID == targetID {
+        return false, nil
+    }
+    return s.repo.IsFollowing(viewer.UserID, targetID)
 }
 
 func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) (*dtos.PublicProfileData, error) {
@@ -55,18 +52,13 @@ func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) 
 	}
 
 	profile := mapUserToPublicProfile(user)
+	if profile == nil {
+		return nil, fmt.Errorf("get public profile: profile is nil")
+	}
 
-	if viewer.IsAuthenticated() {
-		if viewer.UserID == user.ID {
-			following, err := s.repo.IsFollowing(viewer.UserID, user.ID)
-			if err != nil {
-				return nil, fmt.Errorf("get public profile: %w", err)
-			}
-			viewer.IsFollowing = following
-			(*profile).IsFollowed = following
-		}
-	} else {
-		(*profile).IsFollowed = false
+	(*profile).IsFollowed, err = s.isFollowing(viewer, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get public profile: %w", err)
 	}
 
 	return profile, nil
@@ -187,19 +179,18 @@ func (s *usersUsecase) Follow(viewer *ViewerContext, targetUsername string) erro
 	if err := s.repo.Follow(viewer.UserID, followedID); err != nil {
 		return fmt.Errorf("follow: %w", err)
 	}
-	viewer.IsFollowing = true
 	return nil
 }
 
 func (s *usersUsecase) Unfollow(viewer *ViewerContext, targetUsername string) error {
 	followedID, err := s.repo.GetUserIDByUsername(targetUsername)
 	if err != nil {
-		mapRepoErr("unfollow", err)
+		return mapRepoErr("unfollow", err)
 	}
 
 	if err := s.repo.Unfollow(viewer.UserID, followedID); err != nil {
 		return fmt.Errorf("unfollow: %w", err)
 	}
-	viewer.IsFollowing = false
 	return nil
 }
+

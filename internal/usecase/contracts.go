@@ -29,6 +29,10 @@ type UsersRepository interface {
 	IsFollowing(followerID, followedID string) (bool, error)
 }
 
+type CatalogRepository interface {
+	
+}
+
 type TokenProvider interface{
 	GenerateAccessToken(userID string, role dtos.Role) (string, error)
 	GenerateRefreshToken() (string, string, time.Time, error)
