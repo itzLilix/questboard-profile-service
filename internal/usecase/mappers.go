@@ -70,3 +70,43 @@ func mapUpdateInputToRepoParams(userID string, in *UpdateProfileInput) *infrastr
 		Links:       in.Links,
 	}
 }
+
+func mapListUsersFilterToUserCatalogFilter(filter ListUsersFilter, followedByID string) *infrastructure.UserCatalogFilter {
+	return &infrastructure.UserCatalogFilter{
+		Search:       filter.Search,
+		Format:       filter.Format,
+		Type:         filter.Type,
+		City:         filter.City,
+		MinRating:    filter.MinRating,
+		FollowedByID: followedByID,
+		Sort:         filter.Sort,
+		OnlyGMs:      filter.OnlyGMs,
+		Cursor:       filter.Cursor,
+		Limit:        filter.Limit,
+	}
+}
+
+func mapUserCardRowToProfileCardData(rows []infrastructure.UserCardRow) []dtos.ProfileCardData {
+	if rows == nil {
+		return nil
+	}
+	
+	result := make([]dtos.ProfileCardData, len(rows))
+	for i, row := range rows {
+		result[i] = dtos.ProfileCardData{
+			ID:              row.ID,
+			Username:        row.Username,
+			DisplayName:     row.DisplayName,
+			AvatarURL:       row.AvatarURL,
+			BannerURL:       row.BannerURL,
+			Rating:          row.Rating,
+			ReviewsCount:    row.ReviewsCount,
+			SessionsPlayed:  row.SessionsPlayed,
+			SessionsHosted:  row.SessionsHosted,
+			PreferredFormat: row.PreferredFormat,
+			PreferredType:   row.PreferredType,
+			IsFollowed:      row.IsFollowed,
+		}
+	}
+	return result
+}

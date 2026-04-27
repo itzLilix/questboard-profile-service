@@ -68,8 +68,13 @@ func main() {
 	usersService := usecase.NewUsersUsecase(usersRepo, imageUploader)
 	usersHandler := handlers.NewUsersHandler(usersService, log.Logger, rbacMiddleware)
 
+	catalogRepo := infrastructure.NewCatalogRepository(conn, psql)
+	catalogUsecase := usecase.NewCatalogUsecase(catalogRepo)
+	catalogHandler := handlers.NewCatalogHandler(catalogUsecase, log.Logger, rbacMiddleware)
+
 	authHandler.RegisterRoutes(app)
 	usersHandler.RegisterRoutes(app)
+	catalogHandler.RegisterRoutes(app)
 
 	log.Fatal().Err(app.Listen(":" + cfg.ServerPort)).Msg("server stopped")
 }

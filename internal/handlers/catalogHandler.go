@@ -1,19 +1,23 @@
 package handlers
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
 	"github.com/itzLilix/questboard-profile-service/internal/usecase"
+	"github.com/itzLilix/questboard-shared/dtos"
 	"github.com/rs/zerolog"
 )
 
 type ListUsersQuery struct {
 	Search     string   `query:"search"`
-	Systems    []string `query:"system"`
-	Formats    []string `query:"format"`
-	Types      []string `query:"type"`
+	Format     string 	`query:"format"`
+	Type       string 	`query:"type"`
+	City 	   string   `query:"city"`
 	MinRating  float64  `query:"minRating"`
 	FollowedBy string   `query:"followedBy"`
+	OnlyGMs	   bool		`query:"onlyGMs"`
 	Sort       string   `query:"sort"`
 	Cursor     string   `query:"cursor"`
 	Limit      int      `query:"limit"`
@@ -30,33 +34,120 @@ type catalogHandler struct {
 }
 
 func NewCatalogHandler(usecase usecase.CatalogUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware) CatalogHandler {
-	return &usersHandler{usecase: usecase, log: log, rbac: rbac}
+	return &catalogHandler{usecase: usecase, log: log, rbac: rbac}
 }
 
 func (h *catalogHandler) RegisterRoutes(app *fiber.App) {
-	app.Get("/users/", h.list)
+	app.Get("/users/", h.rbac.Optional(), h.list)
 }
 
 func (h *catalogHandler) list(c fiber.Ctx) error {
 	var q ListUsersQuery
+	viewer := viewerFromCtx(c)
+
 	if err := c.Bind().Query(&q); err != nil {
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("unable bind request params")
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
-	
-	viewer := viewerFromCtx(c)
-	
-	q.validate(viewer)
-	
+
+	filter, err := mapQueryToFilter(&q, viewer)
+	if err != nil {
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("invalid request params")
+		if errors.Is(err, ErrUnauthorized) {
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	cards, err := h.usecase.ListUsers(viewer, *filter)
+	if err != nil {
+		if errors.Is(err, usecase.ErrUserNotFound) {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("error listing users")
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+	return c.Status(fiber.StatusOK).JSON(cards)
 }
 
-func (q *ListUsersQuery) validate(viewer *usecase.ViewerContext) error {
-    if q.Limit <= 0 || q.Limit > 100 { q.Limit = 32 }
-    switch q.Sort {
-		case "", "rating", "recent", "followedAt":
-		default: return ErrInvalidSort
-    }
-    if q.Sort == "followedAt" && q.FollowedBy == "" { return ErrInvalidSort }
-    if q.FollowedBy == "me" && viewer.UserID == "" { return ErrUnauthorized }
-    if q.MinRating < 0 || q.MinRating > 5 { return wrapErrInvalidFilter(q.MinRating) }
-    return nil
+func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.ViewerContext) (*usecase.ListUsersFilter, error) {
+	if q.Limit <= 0 || q.Limit > 100 {
+		q.Limit = 32
+	}
+	if q.MinRating < 0 || q.MinRating > 5 {
+		return nil, wrapErrInvalidFilter(q.MinRating)
+	}
+
+	format, err := parseSessionFormat(q.Format)
+	if err != nil {
+		return nil, err
+	}
+	sessionType, err := parseSessionType(q.Type)
+	if err != nil {
+		return nil, err
+	}
+	sort, err := parseSort(q.Sort)
+	if err != nil {
+		return nil, err
+	}
+
+	if q.FollowedBy == "me" && viewer.UserID == "" {
+		return nil, ErrUnauthorized
+	}
+	
+	if sort == dtos.SortFollowedAt && q.FollowedBy == "" {
+		return nil, ErrInvalidSort
+	}
+
+	return &usecase.ListUsersFilter{
+		Search:     q.Search,
+		Format:     format,
+		Type:       sessionType,
+		City:       q.City,
+		MinRating:  q.MinRating,
+		FollowedBy: q.FollowedBy,
+		OnlyGMs: 	q.OnlyGMs,
+		Sort:       sort,
+		Cursor:     q.Cursor,
+		Limit:      q.Limit,
+	}, nil
+}
+
+func parseSessionFormat(s string) (dtos.SessionFormat, error) {
+	if s == "" {
+		return "", nil
+	}
+	v := dtos.SessionFormat(s)
+	switch v {
+	case dtos.Online, dtos.Offline:
+		return v, nil
+	default:
+		return "", ErrInvalidFilter
+	}
+}
+
+func parseSessionType(s string) (dtos.SessionType, error) {
+	if s == "" {
+		return "", nil
+	}
+	v := dtos.SessionType(s)
+	switch v {
+	case dtos.Oneshot, dtos.Campaign:
+		return v, nil
+	default:
+		return "", ErrInvalidFilter
+	}
+}
+
+func parseSort(s string) (dtos.UserListSort, error) {
+	if s == "" {
+		return "", nil
+	}
+	v := dtos.UserListSort(s)
+	switch v {
+	case dtos.SortRating, dtos.SortRecent, dtos.SortFollowedAt:
+		return v, nil
+	default:
+		return "", ErrInvalidSort
+	}
 }
