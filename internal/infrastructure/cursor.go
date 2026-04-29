@@ -11,9 +11,6 @@ import (
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
-// catalogCursor is the resume point for paginated catalog queries.
-// It carries the sort it was generated under so subsequent requests
-// can be rejected if the client changes sort mid-pagination.
 type catalogCursor struct {
 	Sort         dtos.UserListSort `json:"s"`
 	SortOrder    dtos.SortOrder    `json:"o"`
@@ -47,10 +44,6 @@ func decodeCursor(s string) (*catalogCursor, error) {
 	return &c, nil
 }
 
-// applyCursor adds a row-comparison WHERE clause that resumes from the cursor's
-// position. Returns ErrInvalidCursor if the cursor's sort doesn't match the
-// request's sort — that prevents nonsense results when the client changes sort
-// while paginating.
 func applyCursor(q sq.SelectBuilder, c *catalogCursor, sort dtos.UserListSort, order dtos.SortOrder) (sq.SelectBuilder, error) {
 	if c == nil {
 		return q, nil
@@ -65,33 +58,31 @@ func applyCursor(q sq.SelectBuilder, c *catalogCursor, sort dtos.UserListSort, o
 	}
 
 	switch sort {
-	case dtos.SortRating:
-		if c.Rating == nil {
-			return q, ErrInvalidCursor
-		}
-		return q.Where(fmt.Sprintf("(u.rating, u.id) %s (?, ?)", op), *c.Rating, c.ID), nil
-	case dtos.SortRecent:
-		if c.CreatedAt == nil {
-			return q, ErrInvalidCursor
-		}
-		return q.Where(fmt.Sprintf("(u.created_at, u.id) %s (?, ?)", op), *c.CreatedAt, c.ID), nil
-	case dtos.SortFollowedAt:
-		if c.FollowedAt == nil {
-			return q, ErrInvalidCursor
-		}
-		return q.Where(fmt.Sprintf("(f.created_at, u.id) %s (?, ?)", op), *c.FollowedAt, c.ID), nil
-	case dtos.SortReviewsCount:
-		if c.ReviewsCount == nil {
-			return q, ErrInvalidCursor
-		}
-		return q.Where(fmt.Sprintf("(u.reviews_count, u.id) %s (?, ?)", op), *c.ReviewsCount, c.ID), nil
-	default:
-		// No primary sort — id-only comparison.
-		return q.Where(fmt.Sprintf("u.id %s ?", op), c.ID), nil
+		case dtos.SortRating:
+			if c.Rating == nil {
+				return q, ErrInvalidCursor
+			}
+			return q.Where(fmt.Sprintf("(u.rating, u.id) %s (?, ?)", op), *c.Rating, c.ID), nil
+		case dtos.SortRecent:
+			if c.CreatedAt == nil {
+				return q, ErrInvalidCursor
+			}
+			return q.Where(fmt.Sprintf("(u.created_at, u.id) %s (?, ?)", op), *c.CreatedAt, c.ID), nil
+		case dtos.SortFollowedAt:
+			if c.FollowedAt == nil {
+				return q, ErrInvalidCursor
+			}
+			return q.Where(fmt.Sprintf("(f.created_at, u.id) %s (?, ?)", op), *c.FollowedAt, c.ID), nil
+		case dtos.SortReviewsCount:
+			if c.ReviewsCount == nil {
+				return q, ErrInvalidCursor
+			}
+			return q.Where(fmt.Sprintf("(u.reviews_count, u.id) %s (?, ?)", op), *c.ReviewsCount, c.ID), nil
+		default:
+			return q.Where(fmt.Sprintf("u.id %s ?", op), c.ID), nil
 	}
 }
 
-// buildNextCursor produces the cursor for the page after `last`.
 func buildNextCursor(last UserCardRow, sort dtos.UserListSort, order dtos.SortOrder) (string, error) {
 	c := catalogCursor{
 		Sort:      sort,
@@ -99,21 +90,21 @@ func buildNextCursor(last UserCardRow, sort dtos.UserListSort, order dtos.SortOr
 		ID:        last.ID,
 	}
 	switch sort {
-	case dtos.SortRating:
-		v := last.Rating
-		c.Rating = &v
-	case dtos.SortRecent:
-		v := last.CreatedAt
-		c.CreatedAt = &v
-	case dtos.SortFollowedAt:
-		if last.FollowedAt == nil {
-			return "", errors.New("build next cursor: SortFollowedAt requires non-null FollowedAt")
-		}
-		v := *last.FollowedAt
-		c.FollowedAt = &v
-	case dtos.SortReviewsCount:
-		v := last.ReviewsCount
-		c.ReviewsCount = &v
+		case dtos.SortRating:
+			v := last.Rating
+			c.Rating = &v
+		case dtos.SortRecent:
+			v := last.CreatedAt
+			c.CreatedAt = &v
+		case dtos.SortFollowedAt:
+			if last.FollowedAt == nil {
+				return "", errors.New("build next cursor: SortFollowedAt requires non-null FollowedAt")
+			}
+			v := *last.FollowedAt
+			c.FollowedAt = &v
+		case dtos.SortReviewsCount:
+			v := last.ReviewsCount
+			c.ReviewsCount = &v
 	}
 	return encodeCursor(c)
 }

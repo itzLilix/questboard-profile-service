@@ -126,16 +126,16 @@ func (r *catalogRepository) GetUsersList(filter *UserCatalogFilter, viewerID str
 	}
 
 	switch filter.Sort {
-	case dtos.SortRating:
-		q = q.OrderBy("u.rating "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
-	case dtos.SortRecent:
-		q = q.OrderBy("u.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
-	case dtos.SortFollowedAt:
-		q = q.OrderBy("f.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
-	case dtos.SortReviewsCount:
-		q = q.OrderBy("u.reviews_count "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
-	default:
-		q = q.OrderBy("u.id " + string(filter.SortOrder))
+		case dtos.SortRating:
+			q = q.OrderBy("u.rating "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+		case dtos.SortRecent:
+			q = q.OrderBy("u.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+		case dtos.SortFollowedAt:
+			q = q.OrderBy("f.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+		case dtos.SortReviewsCount:
+			q = q.OrderBy("u.reviews_count "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+		default:
+			q = q.OrderBy("u.id " + string(filter.SortOrder))
 	}
 
 	q = q.Limit(filter.Limit + 1)
