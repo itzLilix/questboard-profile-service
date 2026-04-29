@@ -31,7 +31,7 @@ type UsersRepository interface {
 
 type CatalogRepository interface {
 	GetUserIDByUsername(username string) (string, error)
-	GetUsersList(filter *infrastructure.UserCatalogFilter) ([]infrastructure.UserCardRow, error)
+	GetUsersList(filter *infrastructure.UserCatalogFilter, viewerID string) ([]infrastructure.UserCardRow, string, error)
 }
 
 type TokenProvider interface{

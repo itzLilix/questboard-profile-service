@@ -24,7 +24,7 @@ func NewAuthRepository(db *pgxpool.Pool, psql sq.StatementBuilderType) *authRepo
 }
 
 func (r *authRepository) GetUserByID(id string) (*entities.User, error) {
-	sql, args, err := r.psql.Select(userCols).From("users").Where(sq.Eq{"id": id}).ToSql()
+	sql, args, err := r.psql.Select(userCols...).From("users").Where(sq.Eq{"id": id}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
@@ -64,7 +64,7 @@ func (r *authRepository) CreateUser(user *entities.User) error {
 }
 
 func (r *authRepository) GetUserByEmail(email string) (*entities.User, error) {
-	sql, args, err := r.psql.Select(userCols).From("users").Where(sq.Eq{"email": email}).ToSql()
+	sql, args, err := r.psql.Select(userCols...).From("users").Where(sq.Eq{"email": email}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}

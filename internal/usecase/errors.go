@@ -21,6 +21,8 @@ var (
 
 	ErrCannotFollowSelf = errors.New("cannot follow yourself")
 
+	ErrInvalidCursor = errors.New("invalid cursor")
+
 	ErrFileTooLarge    = errors.New("file too large")
 	ErrInvalidFileType = errors.New("invalid file type")
 )

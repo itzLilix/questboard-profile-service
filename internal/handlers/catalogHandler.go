@@ -19,6 +19,7 @@ type ListUsersQuery struct {
 	FollowedBy string   `query:"followedBy"`
 	OnlyGMs	   bool		`query:"onlyGMs"`
 	Sort       string   `query:"sort"`
+	SortOrder  string 	`query:"order"`
 	Cursor     string   `query:"cursor"`
 	Limit      int      `query:"limit"`
 }
@@ -59,15 +60,18 @@ func (h *catalogHandler) list(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	cards, err := h.usecase.ListUsers(viewer, *filter)
+	resp, err := h.usecase.ListUsers(viewer, *filter)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			return c.SendStatus(fiber.StatusNotFound)
 		}
+		if errors.Is(err, usecase.ErrInvalidCursor) {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
 		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("error listing users")
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
-	return c.Status(fiber.StatusOK).JSON(cards)
+	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
 func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.ViewerContext) (*usecase.ListUsersFilter, error) {
@@ -90,6 +94,10 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.ViewerContext) (*usecas
 	if err != nil {
 		return nil, err
 	}
+	sortOrder, err := parseSortOrder(q.SortOrder)
+	if err != nil {
+		return nil, err
+	}
 
 	if q.FollowedBy == "me" && viewer.UserID == "" {
 		return nil, ErrUnauthorized
@@ -108,8 +116,9 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.ViewerContext) (*usecas
 		FollowedBy: q.FollowedBy,
 		OnlyGMs: 	q.OnlyGMs,
 		Sort:       sort,
+		SortOrder:  sortOrder,
 		Cursor:     q.Cursor,
-		Limit:      q.Limit,
+		Limit:      uint64(q.Limit),
 	}, nil
 }
 
@@ -119,10 +128,10 @@ func parseSessionFormat(s string) (dtos.SessionFormat, error) {
 	}
 	v := dtos.SessionFormat(s)
 	switch v {
-	case dtos.Online, dtos.Offline:
-		return v, nil
-	default:
-		return "", ErrInvalidFilter
+		case dtos.Online, dtos.Offline:
+			return v, nil
+		default:
+			return "", ErrInvalidFilter
 	}
 }
 
@@ -132,10 +141,10 @@ func parseSessionType(s string) (dtos.SessionType, error) {
 	}
 	v := dtos.SessionType(s)
 	switch v {
-	case dtos.Oneshot, dtos.Campaign:
-		return v, nil
-	default:
-		return "", ErrInvalidFilter
+		case dtos.Oneshot, dtos.Campaign:
+			return v, nil
+		default:
+			return "", ErrInvalidFilter
 	}
 }
 
@@ -145,9 +154,23 @@ func parseSort(s string) (dtos.UserListSort, error) {
 	}
 	v := dtos.UserListSort(s)
 	switch v {
-	case dtos.SortRating, dtos.SortRecent, dtos.SortFollowedAt:
-		return v, nil
-	default:
-		return "", ErrInvalidSort
+		case dtos.SortRating, dtos.SortRecent, dtos.SortFollowedAt:
+			return v, nil
+		default:
+			return "", ErrInvalidSort
+	}
+}
+
+func parseSortOrder(s string) (dtos.SortOrder, error) {
+	if s == "" {
+		return dtos.SortDesc, nil
+	}
+
+	v := dtos.SortOrder(s)
+	switch v {
+		case dtos.SortAsc, dtos.SortDesc:
+			return v, nil
+		default:
+			return "", ErrInvalidSort
 	}
 }

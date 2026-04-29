@@ -22,6 +22,9 @@ func mapRepoErr(op string, err error) error {
 	if errors.Is(err, infrastructure.ErrDuplicateEmail) {
 		return ErrEmailExists
 	}
+	if errors.Is(err, infrastructure.ErrInvalidCursor) {
+		return ErrInvalidCursor
+	}
 	return fmt.Errorf("%s: %w", op, err)
 }
 
@@ -79,8 +82,9 @@ func mapListUsersFilterToUserCatalogFilter(filter ListUsersFilter, followedByID 
 		City:         filter.City,
 		MinRating:    filter.MinRating,
 		FollowedByID: followedByID,
-		Sort:         filter.Sort,
 		OnlyGMs:      filter.OnlyGMs,
+		Sort:         filter.Sort,
+		SortOrder: 	  filter.SortOrder,
 		Cursor:       filter.Cursor,
 		Limit:        filter.Limit,
 	}

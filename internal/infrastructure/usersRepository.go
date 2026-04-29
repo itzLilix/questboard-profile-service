@@ -36,7 +36,7 @@ func NewUsersRepository(db *pgxpool.Pool, psql sq.StatementBuilderType) *usersRe
 }
 
 func (r *usersRepository) GetUserByUsername(username string) (*entities.User, error) {
-	sql, args, err := r.psql.Select(userCols).From("users").Where(sq.Eq{"username": username}).ToSql()
+	sql, args, err := r.psql.Select(userCols...).From("users").Where(sq.Eq{"username": username}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("get user by username: %w", err)
 	}
@@ -52,7 +52,7 @@ func (r *usersRepository) GetUserByUsername(username string) (*entities.User, er
 }
 
 func (r *usersRepository) GetUserByID(id string) (*entities.User, error) {
-	sql, args, err := r.psql.Select(userCols).From("users").Where(sq.Eq{"id": id}).ToSql()
+	sql, args, err := r.psql.Select(userCols...).From("users").Where(sq.Eq{"id": id}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
@@ -122,7 +122,7 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 		return nil, ErrNoNewData
 	}
 
-	sql, args, err := builder.Where(sq.Eq{"id": input.UserID}).Suffix("RETURNING " + userCols).ToSql()
+	sql, args, err := builder.Where(sq.Eq{"id": input.UserID}).Suffix("RETURNING " + strings.Join(userCols, ", ")).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}

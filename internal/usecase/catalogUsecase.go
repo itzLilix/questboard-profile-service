@@ -3,7 +3,7 @@ package usecase
 import "github.com/itzLilix/questboard-shared/dtos"
 
 type CatalogUsecase interface {
-	ListUsers(viewer *ViewerContext, filter ListUsersFilter) ([]dtos.ProfileCardData, error)
+	ListUsers(viewer *ViewerContext, filter ListUsersFilter) (*dtos.ListUsersResponse, error)
 }
 
 type ListUsersFilter struct {
@@ -15,8 +15,9 @@ type ListUsersFilter struct {
 	FollowedBy   	string
 	OnlyGMs			bool
 	Sort       		dtos.UserListSort
+	SortOrder	 	dtos.SortOrder
 	Cursor     		string
-	Limit      		int
+	Limit      		uint64
 }
 
 type catalogUsecase struct {
@@ -27,7 +28,7 @@ func NewCatalogUsecase(repo CatalogRepository) *catalogUsecase{
 	return &catalogUsecase{repo:repo};
 }
 
-func (uc *catalogUsecase) ListUsers(viewer *ViewerContext, filter ListUsersFilter) ([]dtos.ProfileCardData, error) {
+func (uc *catalogUsecase) ListUsers(viewer *ViewerContext, filter ListUsersFilter) (*dtos.ListUsersResponse, error) {
 	var followedByID string
 	if filter.FollowedBy == "me" {
 		followedByID = viewer.UserID
@@ -39,10 +40,13 @@ func (uc *catalogUsecase) ListUsers(viewer *ViewerContext, filter ListUsersFilte
 		}
 	}
 
-	cards, err := uc.repo.GetUsersList(mapListUsersFilterToUserCatalogFilter(filter, followedByID))
+	rows, nextCursor, err := uc.repo.GetUsersList(mapListUsersFilterToUserCatalogFilter(filter, followedByID), viewer.UserID)
 	if err != nil {
 		return nil, mapRepoErr("list users", err)
 	}
-	return mapUserCardRowToProfileCardData(cards), nil
+	return &dtos.ListUsersResponse{
+		Items:      mapUserCardRowToProfileCardData(rows),
+		NextCursor: nextCursor,
+	}, nil
 }
 
