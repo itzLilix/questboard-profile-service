@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
@@ -166,7 +167,7 @@ func parseSortOrder(s string) (dtos.SortOrder, error) {
 		return dtos.SortDesc, nil
 	}
 
-	v := dtos.SortOrder(s)
+	v := dtos.SortOrder(strings.ToUpper(s))
 	switch v {
 		case dtos.SortAsc, dtos.SortDesc:
 			return v, nil

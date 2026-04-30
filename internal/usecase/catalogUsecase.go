@@ -1,6 +1,8 @@
 package usecase
 
-import "github.com/itzLilix/questboard-shared/dtos"
+import (
+	"github.com/itzLilix/questboard-shared/dtos"
+)
 
 type CatalogUsecase interface {
 	ListUsers(viewer *ViewerContext, filter ListUsersFilter) (*dtos.ListUsersResponse, error)

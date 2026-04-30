@@ -80,11 +80,14 @@ func (r *catalogRepository) GetUsersList(filter *UserCatalogFilter, viewerID str
 
 	q := r.psql.
 		Select(UserCardRowCols...).
-		From("users u").
-		LeftJoin("follows f ON f.followed_id = u.id AND f.follower_id = ?", viewerID)
+		From("users u")
 
 	if viewerID != "" {
-		q = q.Where(sq.NotEq{"u.id": viewerID})
+		q = q.
+			LeftJoin("follows f ON f.followed_id = u.id AND f.follower_id = ?", viewerID).
+			Where(sq.NotEq{"u.id": viewerID})
+	} else {
+		q = q.LeftJoin("follows f ON f.followed_id = u.id")
 	}
 	if filter.Search != "" {
 		q = q.Where(sq.Or{
@@ -175,6 +178,6 @@ func (r *catalogRepository) GetUsersList(filter *UserCatalogFilter, viewerID str
 			return nil, "", fmt.Errorf("get users list: build next cursor: %w", err)
 		}
 	}
-
+	
 	return out, nextCursor, nil
 }
