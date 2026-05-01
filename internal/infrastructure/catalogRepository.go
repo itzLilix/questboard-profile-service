@@ -137,6 +137,8 @@ func (r *catalogRepository) GetUsersList(filter *UserCatalogFilter, viewerID str
 			q = q.OrderBy("f.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
 		case dtos.SortReviewsCount:
 			q = q.OrderBy("u.reviews_count "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+		case dtos.SortSessionsCount:
+			q = q.OrderBy("u.sessions_hosted "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
 		default:
 			q = q.OrderBy("u.id " + string(filter.SortOrder))
 	}
