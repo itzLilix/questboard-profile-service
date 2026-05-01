@@ -155,7 +155,7 @@ func parseSort(s string) (dtos.UserListSort, error) {
 	}
 	v := dtos.UserListSort(s)
 	switch v {
-		case dtos.SortRating, dtos.SortRecent, dtos.SortFollowedAt, dtos.SortSessionsCount:
+		case dtos.SortRating, dtos.SortRecent, dtos.SortFollowedAt, dtos.SortReviewsCount, dtos.SortSessionsCount:
 			return v, nil
 		default:
 			return "", ErrInvalidSort
