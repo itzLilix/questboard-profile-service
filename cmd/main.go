@@ -55,12 +55,13 @@ func main() {
 	}
 	log.Info().Msg("migrations ran successfully")
 
-	tokenProvider := jwt.NewTokenProvider([]byte(cfg.JWTSecret), cfg.AccessTTL, cfg.RefreshTTL)
+	tokenProvider := jwt.NewProvider([]byte(cfg.JWTSecret), cfg.AccessTTL)
+	refreshTokens := infrastructure.NewRefreshTokenManager(cfg.RefreshTTL)
 	passwordHasher := infrastructure.NewPasswordHasher()
 	rbacMiddleware := middleware.NewRBACMiddleware(tokenProvider, log.Logger)
 
 	authRepo := infrastructure.NewAuthRepository(conn, psql)
-	authService := usecase.NewAuthUsecase(authRepo, tokenProvider, passwordHasher)
+	authService := usecase.NewAuthUsecase(authRepo, tokenProvider, refreshTokens, passwordHasher)
 	authHandler := handlers.NewAuthHandler(authService, log.Logger, cfg)
 
 	imageUploader := images.NewLocalImageUploader(cfg.UploadDir, cfg.PublicBaseURL, cfg.MaxUploadSize)

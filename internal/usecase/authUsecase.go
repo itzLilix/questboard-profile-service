@@ -19,8 +19,9 @@ type AuthUsecase interface {
 }
 
 type authUsecase struct {
-	repo AuthRepository
-	tokenProvider TokenProvider
+	repo           AuthRepository
+	tokenProvider  TokenProvider
+	refreshTokens  RefreshTokenManager
 	passwordHasher PasswordHasher
 }
 
@@ -28,8 +29,18 @@ const (
 	refreshTokenPrefixLength = 8
 )
 
-func NewAuthUsecase(repo AuthRepository, tokenProvider TokenProvider, passwordHasher PasswordHasher) AuthUsecase {
-	return &authUsecase{repo: repo, tokenProvider: tokenProvider, passwordHasher: passwordHasher}
+func NewAuthUsecase(
+	repo AuthRepository,
+	tokenProvider TokenProvider,
+	refreshTokens RefreshTokenManager,
+	passwordHasher PasswordHasher,
+) AuthUsecase {
+	return &authUsecase{
+		repo:           repo,
+		tokenProvider:  tokenProvider,
+		refreshTokens:  refreshTokens,
+		passwordHasher: passwordHasher,
+	}
 }
 
 func (s *authUsecase) ValidateToken(tokenString string) (*dtos.PrivateProfileData, error) {
@@ -144,7 +155,7 @@ func (s *authUsecase) generateAccessToken(user *entities.User) (string, error) {
 }
 
 func (s *authUsecase) generateRefreshToken(user *entities.User) (string, error) {
-	tokenString, hashString, expiresAt, err := s.tokenProvider.GenerateRefreshToken()
+	tokenString, hashString, expiresAt, err := s.refreshTokens.Generate()
 	if err != nil {
 		return "", fmt.Errorf("generateRefreshToken: generate: %w", err)
 	}
@@ -179,7 +190,7 @@ func (s *authUsecase) RefreshTokens(clientToken string) (*dtos.PrivateProfileDat
 		return nil, "", "", fmt.Errorf("refresh tokens: get refresh token: %w", err)
 	}
 
-	if !s.tokenProvider.IsRefreshTokenValid(clientToken, storedToken.TokenHash) || 
+	if !s.refreshTokens.IsValid(clientToken, storedToken.TokenHash) ||
 		storedToken.ExpiresAt.Before(time.Now()) {
 		return nil, "", "", ErrInvalidToken
 	}

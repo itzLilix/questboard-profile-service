@@ -34,11 +34,14 @@ type CatalogRepository interface {
 	GetUsersList(filter *infrastructure.UserCatalogFilter, viewerID string) ([]infrastructure.UserCardRow, string, error)
 }
 
-type TokenProvider interface{
+type TokenProvider interface {
 	GenerateAccessToken(userID string, role dtos.Role) (string, error)
-	GenerateRefreshToken() (string, string, time.Time, error)
 	ParseToken(tokenString string) (*dtos.TokenClaims, error)
-	IsRefreshTokenValid(clientToken, storedTokenHash string) bool
+}
+
+type RefreshTokenManager interface {
+	Generate() (string, string, time.Time, error)
+	IsValid(clientToken, storedTokenHash string) bool
 }
 
 type PasswordHasher interface {
