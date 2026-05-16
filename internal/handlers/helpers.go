@@ -7,13 +7,13 @@ import (
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
-func viewerFromCtx(c fiber.Ctx) *usecase.ViewerContext {
-	v := &usecase.ViewerContext{}
+func viewerFromCtx(c fiber.Ctx) *usecase.Viewer {
+	v := &usecase.Viewer{}
 	if id, ok := c.Locals(middleware.LocalsUserID).(string); ok {
 		v.UserID = id
 	}
 	if role, ok := c.Locals(middleware.LocalsUserRole).(dtos.Role); ok {
-		v.IsAdmin = role == dtos.AdminRole
+		v.Role = role
 	}
 	return v
 }

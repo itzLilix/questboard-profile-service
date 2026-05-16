@@ -5,7 +5,7 @@ import (
 )
 
 type CatalogUsecase interface {
-	ListUsers(viewer *ViewerContext, filter ListUsersFilter) (*dtos.ListUsersResponse, error)
+	ListUsers(viewer *Viewer, filter ListUsersFilter) (*dtos.ListUsersResponse, error)
 }
 
 type ListUsersFilter struct {
@@ -30,7 +30,7 @@ func NewCatalogUsecase(repo CatalogRepository) *catalogUsecase{
 	return &catalogUsecase{repo:repo};
 }
 
-func (uc *catalogUsecase) ListUsers(viewer *ViewerContext, filter ListUsersFilter) (*dtos.ListUsersResponse, error) {
+func (uc *catalogUsecase) ListUsers(viewer *Viewer, filter ListUsersFilter) (*dtos.ListUsersResponse, error) {
 	var followedByID string
 	if filter.FollowedBy == "me" {
 		followedByID = viewer.UserID

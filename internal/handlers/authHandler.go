@@ -45,7 +45,8 @@ func (h *authHandler) login(c fiber.Ctx) error {
 	}
 	var req request
 	if err := c.Bind().Body(&req); err != nil {
-		return err
+		h.log.Error().Err(err).Msg("invalid request body in login")
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 	user, accessToken, refreshToken, err := h.usecase.Login(req.Email, req.Password)
 	if err != nil {
@@ -72,7 +73,8 @@ func (h *authHandler) signup(c fiber.Ctx) error {
 	}
 	var req request
 	if err := c.Bind().Body(&req); err != nil {
-        return err
+        h.log.Error().Err(err).Msg("invalid request body in signup")
+		return c.SendStatus(fiber.StatusBadRequest)
     }
 
 	user, accessToken, refreshToken, err := h.usecase.Register(req.Username, req.DisplayName, req.Email, req.Password)

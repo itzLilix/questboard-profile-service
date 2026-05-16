@@ -11,15 +11,15 @@ import (
 )
 
 type UsersUsecase interface {
-	GetPublicProfile(viewer *ViewerContext, username string) (*dtos.PublicProfileData, error)
-	GetPrivateProfile(viewer *ViewerContext) (*dtos.PrivateProfileData, error)
-	UpdateProfile(viewer *ViewerContext, input *UpdateProfileInput) (*dtos.PrivateProfileData, error)
-	UpdateAvatar(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
-	RemoveAvatar(viewer *ViewerContext) (*dtos.PrivateProfileData, error)
-	UpdateBanner(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
-	RemoveBanner(viewer *ViewerContext) (*dtos.PrivateProfileData, error)
-	Follow(viewer *ViewerContext, targetUsername string) error
-	Unfollow(viewer *ViewerContext, targetUsername string) error
+	GetPublicProfile(viewer *Viewer, username string) (*dtos.PublicProfileData, error)
+	GetPrivateProfile(viewer *Viewer) (*dtos.PrivateProfileData, error)
+	UpdateProfile(viewer *Viewer, input *UpdateProfileInput) (*dtos.PrivateProfileData, error)
+	UpdateAvatar(viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
+	RemoveAvatar(viewer *Viewer) (*dtos.PrivateProfileData, error)
+	UpdateBanner(viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
+	RemoveBanner(viewer *Viewer) (*dtos.PrivateProfileData, error)
+	Follow(viewer *Viewer, targetUsername string) error
+	Unfollow(viewer *Viewer, targetUsername string) error
 }
 
 type usersUsecase struct {
@@ -38,14 +38,14 @@ func NewUsersUsecase(repo UsersRepository, images ImageUploader) UsersUsecase {
 	return &usersUsecase{repo: repo, images: images}
 }
 
-func (s *usersUsecase) isFollowing(viewer *ViewerContext, targetID string) (bool, error) {
-    if !viewer.IsAuthenticated() || viewer.UserID == targetID {
+func (s *usersUsecase) isFollowing(viewer *Viewer, targetID string) (bool, error) {
+    if !viewer.IsAuthenticated() || viewer.Is(targetID) {
         return false, nil
     }
     return s.repo.IsFollowing(viewer.UserID, targetID)
 }
 
-func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) (*dtos.PublicProfileData, error) {
+func (s *usersUsecase) GetPublicProfile(viewer *Viewer, username string) (*dtos.PublicProfileData, error) {
 	user, err := s.repo.GetUserByUsername(username)
 	if err != nil {
 		return nil, mapRepoErr("get public profile", err)
@@ -64,7 +64,7 @@ func (s *usersUsecase) GetPublicProfile(viewer *ViewerContext, username string) 
 	return profile, nil
 }
 
-func (s *usersUsecase) GetPrivateProfile(viewer *ViewerContext) (*dtos.PrivateProfileData, error) {
+func (s *usersUsecase) GetPrivateProfile(viewer *Viewer) (*dtos.PrivateProfileData, error) {
 	user, err := s.repo.GetUserByID(viewer.UserID)
 	if err != nil {
 		return nil, mapRepoErr("get private profile", err)
@@ -72,7 +72,7 @@ func (s *usersUsecase) GetPrivateProfile(viewer *ViewerContext) (*dtos.PrivatePr
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfileInput) (*dtos.PrivateProfileData, error) {
+func (s *usersUsecase) UpdateProfile(viewer *Viewer, input *UpdateProfileInput) (*dtos.PrivateProfileData, error) {
 	if input.Username != nil {
 		if err := validateUsername(*input.Username); err != nil {
 			return nil, wrapInvalidDataError(err)
@@ -114,13 +114,13 @@ func (s *usersUsecase) UpdateProfile(viewer *ViewerContext, input *UpdateProfile
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *usersUsecase) UpdateAvatar(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error) {
+func (s *usersUsecase) UpdateAvatar(viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error) {
 	return s.uploadImage(viewer.UserID, file, "avatars", func(url *string) *infrastructure.UpdateUserParams {
 		return &infrastructure.UpdateUserParams{UserID: viewer.UserID, AvatarURL: url}
 	})
 }
 
-func (s *usersUsecase) RemoveAvatar(viewer *ViewerContext) (*dtos.PrivateProfileData, error) {
+func (s *usersUsecase) RemoveAvatar(viewer *Viewer) (*dtos.PrivateProfileData, error) {
 	user, err := s.repo.UpdateUser(&infrastructure.UpdateUserParams{UserID: viewer.UserID, RemoveAvatar: true})
 	if err != nil {
 		return nil, mapRepoErr("remove avatar", err)
@@ -128,13 +128,13 @@ func (s *usersUsecase) RemoveAvatar(viewer *ViewerContext) (*dtos.PrivateProfile
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *usersUsecase) UpdateBanner(viewer *ViewerContext, file *multipart.FileHeader) (*dtos.PrivateProfileData, error) {
+func (s *usersUsecase) UpdateBanner(viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error) {
 	return s.uploadImage(viewer.UserID, file, "banners", func(url *string) *infrastructure.UpdateUserParams {
 		return &infrastructure.UpdateUserParams{UserID: viewer.UserID, BannerURL: url}
 	})
 }
 
-func (s *usersUsecase) RemoveBanner(viewer *ViewerContext) (*dtos.PrivateProfileData, error) {
+func (s *usersUsecase) RemoveBanner(viewer *Viewer) (*dtos.PrivateProfileData, error) {
 	user, err := s.repo.UpdateUser(&infrastructure.UpdateUserParams{UserID: viewer.UserID, RemoveBanner: true})
 	if err != nil {
 		return nil, mapRepoErr("remove banner", err)
@@ -166,7 +166,7 @@ func (s *usersUsecase) uploadImage(
 	return mapUserToPrivateProfile(user), nil
 }
 
-func (s *usersUsecase) Follow(viewer *ViewerContext, targetUsername string) error {
+func (s *usersUsecase) Follow(viewer *Viewer, targetUsername string) error {
 	followedID, err := s.repo.GetUserIDByUsername(targetUsername)
 	if err != nil {
 		return mapRepoErr("follow", err)
@@ -182,7 +182,7 @@ func (s *usersUsecase) Follow(viewer *ViewerContext, targetUsername string) erro
 	return nil
 }
 
-func (s *usersUsecase) Unfollow(viewer *ViewerContext, targetUsername string) error {
+func (s *usersUsecase) Unfollow(viewer *Viewer, targetUsername string) error {
 	followedID, err := s.repo.GetUserIDByUsername(targetUsername)
 	if err != nil {
 		return mapRepoErr("unfollow", err)

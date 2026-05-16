@@ -75,7 +75,7 @@ func (h *catalogHandler) list(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
-func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.ViewerContext) (*usecase.ListUsersFilter, error) {
+func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.Viewer) (*usecase.ListUsersFilter, error) {
 	if q.Limit <= 0 || q.Limit > 100 {
 		q.Limit = 32
 	}
@@ -142,7 +142,7 @@ func parseSessionType(s string) (dtos.SessionType, error) {
 	}
 	v := dtos.SessionType(s)
 	switch v {
-		case dtos.Oneshot, dtos.Campaign:
+		case dtos.OneshotType, dtos.CampaignType:
 			return v, nil
 		default:
 			return "", ErrInvalidFilter
