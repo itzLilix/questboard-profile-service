@@ -61,7 +61,7 @@ func (h *catalogHandler) list(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	resp, err := h.usecase.ListUsers(viewer, *filter)
+	resp, err := h.usecase.ListUsers(c.Context(), viewer, *filter)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			return c.SendStatus(fiber.StatusNotFound)

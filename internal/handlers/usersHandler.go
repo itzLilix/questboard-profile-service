@@ -41,7 +41,7 @@ func (h *usersHandler) RegisterRoutes(app *fiber.App) {
 func (h *usersHandler) getProfileByUsername(c fiber.Ctx) error {
 	username := c.Params("username")
 	viewer := viewerFromCtx(c)
-	profile, err := h.usecase.GetPublicProfile(viewer, username)
+	profile, err := h.usecase.GetPublicProfile(c.Context(), viewer, username)
 	if err != nil {
 		if err == usecase.ErrUserNotFound {
 			h.log.Error().Err(err).Str("username", username).Msg("user not found in getUserByUsername")
@@ -55,7 +55,7 @@ func (h *usersHandler) getProfileByUsername(c fiber.Ctx) error {
 
 func (h *usersHandler) getMyProfile(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
-	profile, err := h.usecase.GetPrivateProfile(viewer)
+	profile, err := h.usecase.GetPrivateProfile(c.Context(), viewer)
 	if err != nil {
 		if err == usecase.ErrUserNotFound {
 			h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("user not found in getMyProfile")
@@ -77,7 +77,7 @@ func (h *usersHandler) updateProfile(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	user, err := h.usecase.UpdateProfile(viewer, req)
+	user, err := h.usecase.UpdateProfile(c.Context(), viewer, req)
 	if err != nil {
 		if errors.Is(err, usecase.ErrInvalidData) {
 			h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("invalid data in updateProfile")
@@ -107,7 +107,7 @@ func (h *usersHandler) updateAvatar(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	user, err := h.usecase.UpdateAvatar(viewer, file)
+	user, err := h.usecase.UpdateAvatar(c.Context(), viewer, file)
 	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "avatar")
 	}
@@ -116,7 +116,7 @@ func (h *usersHandler) updateAvatar(c fiber.Ctx) error {
 
 func (h *usersHandler) removeAvatar(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
-	user, err := h.usecase.RemoveAvatar(viewer)
+	user, err := h.usecase.RemoveAvatar(c.Context(), viewer)
 	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "avatar")
 	}
@@ -132,7 +132,7 @@ func (h *usersHandler) updateBanner(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	user, err := h.usecase.UpdateBanner(viewer, file)
+	user, err := h.usecase.UpdateBanner(c.Context(), viewer, file)
 	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "banner")
 	}
@@ -141,7 +141,7 @@ func (h *usersHandler) updateBanner(c fiber.Ctx) error {
 
 func (h *usersHandler) removeBanner(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
-	user, err := h.usecase.RemoveBanner(viewer);
+	user, err := h.usecase.RemoveBanner(c.Context(), viewer);
 	if err != nil {
 		return h.handleImageErr(c, viewer.UserID, err, "banner")
 	}
@@ -165,7 +165,7 @@ func (h *usersHandler) followUser(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
 	targetUsername := c.Params("username")
 
-	err := h.usecase.Follow(viewer, targetUsername)
+	err := h.usecase.Follow(c.Context(), viewer, targetUsername)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			h.log.Error().Err(err).Str("followerID", viewer.UserID).Str("targetUsername", targetUsername).Msg("user not found in followUser")
@@ -185,7 +185,7 @@ func (h *usersHandler) unfollowUser(c fiber.Ctx) error {
 	viewer := viewerFromCtx(c)
 	targetUsername := c.Params("username")
 
-	err := h.usecase.Unfollow(viewer, targetUsername)
+	err := h.usecase.Unfollow(c.Context(), viewer, targetUsername)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			h.log.Error().Err(err).Str("followerID", viewer.UserID).Str("targetUsername", targetUsername).Msg("user not found in unfollowUser")

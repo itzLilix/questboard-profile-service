@@ -7,6 +7,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/itzLilix/questboard-shared/cursor"
 	"github.com/itzLilix/questboard-shared/dtos"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -53,13 +54,13 @@ func NewCatalogRepository (db *pgxpool.Pool, psql sq.StatementBuilderType) *cata
 	return &catalogRepository{db:db, psql: psql}
 }
 
-func (r *catalogRepository) GetUserIDByUsername(username string) (string, error) {
+func (r *catalogRepository) GetUserIDByUsername(ctx context.Context, username string) (string, error) {
 	sql, args, err := r.psql.Select("id").From("users").Where(sq.Eq{"username": username}).ToSql()
 	if err != nil {
 		return "", fmt.Errorf("get user id by username: %w", err)
 	}
 	var id string
-	if err := r.db.QueryRow(context.Background(), sql, args...).Scan(&id); err != nil {
+	if err := r.db.QueryRow(ctx, sql, args...).Scan(&id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", ErrUserNotFound
 		}
@@ -68,12 +69,12 @@ func (r *catalogRepository) GetUserIDByUsername(username string) (string, error)
 	return id, nil
 }
 
-func (r *catalogRepository) GetUsersList(filter *UserCatalogFilter, viewerID string) ([]UserCardRow, string, error) {
+func (r *catalogRepository) GetUsersList(ctx context.Context, filter *UserCatalogFilter, viewerID string) ([]UserCardRow, string, error) {
 	if filter.SortOrder == "" {
 		filter.SortOrder = dtos.SortDesc
 	}
 
-	cursor, err := decodeCursor(filter.Cursor)
+	cursor, err := cursor.DecodeCursor[catalogCursor](filter.Cursor)
 	if err != nil {
 		return nil, "", err
 	}
@@ -150,7 +151,7 @@ func (r *catalogRepository) GetUsersList(filter *UserCatalogFilter, viewerID str
 		return nil, "", fmt.Errorf("get users list: build sql: %w", err)
 	}
 
-	rows, err := r.db.Query(context.Background(), sql, args...)
+	rows, err := r.db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, "", fmt.Errorf("get users list: query: %w", err)
 	}

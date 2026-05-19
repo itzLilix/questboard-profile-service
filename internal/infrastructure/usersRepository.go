@@ -35,12 +35,12 @@ func NewUsersRepository(db *pgxpool.Pool, psql sq.StatementBuilderType) *usersRe
 	return &usersRepository{db: db, psql: psql}
 }
 
-func (r *usersRepository) GetUserByUsername(username string) (*entities.User, error) {
+func (r *usersRepository) GetUserByUsername(ctx context.Context, username string) (*entities.User, error) {
 	sql, args, err := r.psql.Select(userCols...).From("users").Where(sq.Eq{"username": username}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("get user by username: %w", err)
 	}
-	row := r.db.QueryRow(context.Background(), sql, args...)
+	row := r.db.QueryRow(ctx, sql, args...)
 	user := &entities.User{}
 	if err := scanUser(row, user); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -51,12 +51,12 @@ func (r *usersRepository) GetUserByUsername(username string) (*entities.User, er
 	return user, nil
 }
 
-func (r *usersRepository) GetUserByID(id string) (*entities.User, error) {
+func (r *usersRepository) GetUserByID(ctx context.Context, id string) (*entities.User, error) {
 	sql, args, err := r.psql.Select(userCols...).From("users").Where(sq.Eq{"id": id}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
-	row := r.db.QueryRow(context.Background(), sql, args...)
+	row := r.db.QueryRow(ctx, sql, args...)
 	user := &entities.User{}
 	if err := scanUser(row, user); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -67,13 +67,13 @@ func (r *usersRepository) GetUserByID(id string) (*entities.User, error) {
 	return user, nil
 }
 
-func (r *usersRepository) GetUserIDByUsername(username string) (string, error) {
+func (r *usersRepository) GetUserIDByUsername(ctx context.Context, username string) (string, error) {
 	sql, args, err := r.psql.Select("id").From("users").Where(sq.Eq{"username": username}).ToSql()
 	if err != nil {
 		return "", fmt.Errorf("get user id by username: %w", err)
 	}
 	var id string
-	if err := r.db.QueryRow(context.Background(), sql, args...).Scan(&id); err != nil {
+	if err := r.db.QueryRow(ctx, sql, args...).Scan(&id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", ErrUserNotFound
 		}
@@ -82,7 +82,7 @@ func (r *usersRepository) GetUserIDByUsername(username string) (string, error) {
 	return id, nil
 }
 
-func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, error) {
+func (r *usersRepository) UpdateUser(ctx context.Context, input *UpdateUserParams) (*entities.User, error) {
 	setCount := 0
 	builder := r.psql.Update("users")
 	if input.Username != nil {
@@ -127,7 +127,7 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 		return nil, fmt.Errorf("update user: %w", err)
 	}
 
-	row := r.db.QueryRow(context.Background(), sql, args...)
+	row := r.db.QueryRow(ctx, sql, args...)
 	user := &entities.User{}
 	if err := scanUser(row, user); err != nil {
 		var pgErr *pgconn.PgError
@@ -144,7 +144,7 @@ func (r *usersRepository) UpdateUser(input *UpdateUserParams) (*entities.User, e
 	return user, nil
 }
 
-func (r *usersRepository) Follow(followerID, followedID string) error {
+func (r *usersRepository) Follow(ctx context.Context, followerID, followedID string) error {
 	sql, args, err := r.psql.Insert("follows").
 		Columns("follower_id", "followed_id").
 		Values(followerID, followedID).
@@ -153,7 +153,7 @@ func (r *usersRepository) Follow(followerID, followedID string) error {
 	if err != nil {
 		return fmt.Errorf("follow user: %w", err)
 	}
-	if _, err := r.db.Exec(context.Background(), sql, args...); err != nil {
+	if _, err := r.db.Exec(ctx, sql, args...); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23514" {
 			return ErrCannotFollowSelf
@@ -163,20 +163,20 @@ func (r *usersRepository) Follow(followerID, followedID string) error {
 	return nil
 }
 
-func (r *usersRepository) Unfollow(followerID, followedID string) error {
+func (r *usersRepository) Unfollow(ctx context.Context, followerID, followedID string) error {
 	sql, args, err := r.psql.Delete("follows").
 		Where(sq.And{sq.Eq{"follower_id": followerID}, sq.Eq{"followed_id": followedID}}).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("unfollow user: %w", err)
 	}
-	if _, err := r.db.Exec(context.Background(), sql, args...); err != nil {
+	if _, err := r.db.Exec(ctx, sql, args...); err != nil {
 		return fmt.Errorf("unfollow user: %w", err)
 	}
 	return nil
 }
 
-func (r *usersRepository) IsFollowing(followerID, followedID string) (bool, error) {
+func (r *usersRepository) IsFollowing(ctx context.Context, followerID, followedID string) (bool, error) {
 	subSql, args, err := r.psql.Select("1").From("follows").
 		Where(sq.Eq{"follower_id": followerID}).
 		Where(sq.Eq{"followed_id": followedID}).
@@ -185,7 +185,7 @@ func (r *usersRepository) IsFollowing(followerID, followedID string) (bool, erro
 		return false, fmt.Errorf("is following: %w", err)
 	}
 	var exists bool
-	if err := r.db.QueryRow(context.Background(), "SELECT EXISTS("+subSql+")", args...).Scan(&exists); err != nil {
+	if err := r.db.QueryRow(ctx, "SELECT EXISTS("+subSql+")", args...).Scan(&exists); err != nil {
 		return false, fmt.Errorf("is following: %w", err)
 	}
 	return exists, nil

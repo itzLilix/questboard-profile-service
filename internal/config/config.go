@@ -10,6 +10,8 @@ type Config struct {
 	ServerPort    string
 	DatabaseURL   string
 	MigrateURL    string
+	MinPoolSize   int64
+	MaxPoolSize   int64
 	JWTSecret     string
 	AccessTTL     time.Duration
 	RefreshTTL    time.Duration
@@ -31,6 +33,8 @@ func Load() *Config {
 		JWTSecret:     JWTSecret,
 		AccessTTL:     time.Minute * 15,
 		RefreshTTL:    time.Hour * 24 * 30,
+		MinPoolSize:   getEnvInt64("MIN_POOL_SIZE", 5),
+		MaxPoolSize:   getEnvInt64("MAX_POOL_SIZE", 25),
 		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
 		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:3000"),
 		MaxUploadSize: getEnvInt64("MAX_UPLOAD_SIZE", 5*1024*1024),

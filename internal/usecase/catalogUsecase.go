@@ -1,11 +1,13 @@
 package usecase
 
 import (
+	"context"
+
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
 type CatalogUsecase interface {
-	ListUsers(viewer *Viewer, filter ListUsersFilter) (*dtos.Page[dtos.ProfileCardData], error)
+	ListUsers(ctx context.Context, viewer *Viewer, filter ListUsersFilter) (*dtos.Page[dtos.ProfileCardData], error)
 }
 
 type ListUsersFilter struct {
@@ -30,19 +32,19 @@ func NewCatalogUsecase(repo CatalogRepository) *catalogUsecase{
 	return &catalogUsecase{repo:repo};
 }
 
-func (uc *catalogUsecase) ListUsers(viewer *Viewer, filter ListUsersFilter) (*dtos.Page[dtos.ProfileCardData], error) {
+func (uc *catalogUsecase) ListUsers(ctx context.Context, viewer *Viewer, filter ListUsersFilter) (*dtos.Page[dtos.ProfileCardData], error) {
 	var followedByID string
 	if filter.FollowedBy == "me" {
 		followedByID = viewer.UserID
 	} else if filter.FollowedBy != "" {
 		var err error
-		followedByID, err = uc.repo.GetUserIDByUsername(filter.FollowedBy)
+		followedByID, err = uc.repo.GetUserIDByUsername(ctx, filter.FollowedBy)
 		if err != nil {
 			return nil, mapRepoErr("list users: get followed by id", err)
 		}
 	}
 
-	rows, nextCursor, err := uc.repo.GetUsersList(mapListUsersFilterToUserCatalogFilter(filter, followedByID), viewer.UserID)
+	rows, nextCursor, err := uc.repo.GetUsersList(ctx, mapListUsersFilterToUserCatalogFilter(filter, followedByID), viewer.UserID)
 	if err != nil {
 		return nil, mapRepoErr("list users", err)
 	}

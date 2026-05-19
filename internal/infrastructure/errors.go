@@ -11,5 +11,4 @@ var (
     ErrRefreshTokenNotFound   = errors.New("refresh token not found")
     ErrCannotFollowSelf       = errors.New("cannot follow yourself")
 	ErrNoNewData			  = errors.New("no new data in request")
-	ErrInvalidCursor          = errors.New("invalid cursor")
 )

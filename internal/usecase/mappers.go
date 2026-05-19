@@ -6,6 +6,7 @@ import (
 
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
+	"github.com/itzLilix/questboard-shared/cursor"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
@@ -22,7 +23,7 @@ func mapRepoErr(op string, err error) error {
 	if errors.Is(err, infrastructure.ErrDuplicateEmail) {
 		return ErrEmailExists
 	}
-	if errors.Is(err, infrastructure.ErrInvalidCursor) {
+	if errors.Is(err, cursor.ErrInvalidCursor) {
 		return ErrInvalidCursor
 	}
 	return fmt.Errorf("%s: %w", op, err)

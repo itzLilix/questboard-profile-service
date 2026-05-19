@@ -48,7 +48,7 @@ func (h *authHandler) login(c fiber.Ctx) error {
 		h.log.Error().Err(err).Msg("invalid request body in login")
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
-	user, accessToken, refreshToken, err := h.usecase.Login(req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.usecase.Login(c.Context(),req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecase.ErrUserNotFound) || errors.Is(err, usecase.ErrWrongPassword) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -77,7 +77,7 @@ func (h *authHandler) signup(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
     }
 
-	user, accessToken, refreshToken, err := h.usecase.Register(req.Username, req.DisplayName, req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.usecase.Register(c.Context(), req.Username, req.DisplayName, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, usecase.ErrEmailExists) {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -99,7 +99,7 @@ func (h *authHandler) signup(c fiber.Ctx) error {
 
 func (h *authHandler) logout(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
-    err := h.usecase.Logout(refreshToken)
+    err := h.usecase.Logout(c.Context(), refreshToken)
 
 	h.clearAuthCookies(c)
 
@@ -121,7 +121,7 @@ func (h *authHandler) refresh(c fiber.Ctx) error {
     	return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	
-	user, accessToken, refreshToken, err := h.usecase.RefreshTokens(oldRefreshToken)
+	user, accessToken, refreshToken, err := h.usecase.RefreshTokens(c.Context(), oldRefreshToken)
 	if err != nil {
 		h.log.Warn().Err(err).Msg("token refresh failed")
 		return c.SendStatus(fiber.StatusUnauthorized)

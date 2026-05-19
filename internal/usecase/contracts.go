@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"mime/multipart"
 	"time"
 
@@ -10,28 +11,28 @@ import (
 )
 
 type AuthRepository interface {
-	CreateUser(user *entities.User) error
-	GetUserByEmail(email string) (*entities.User, error)
-	GetUserByID(id string) (*entities.User, error)
-	SaveRefreshToken(token *entities.RefreshToken) error
-	GetRefreshTokenByPrefix(prefix string) (*entities.RefreshToken, error)
-	DeleteRefreshToken(prefix string) error
-	UpdateLastLogin(user *entities.User) error
+	CreateUser(ctx context.Context, user *entities.User) error
+	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
+	GetUserByID(ctx context.Context, id string) (*entities.User, error)
+	SaveRefreshToken(ctx context.Context, token *entities.RefreshToken) error
+	GetRefreshTokenByPrefix(ctx context.Context, prefix string) (*entities.RefreshToken, error)
+	DeleteRefreshToken(ctx context.Context, prefix string) error
+	UpdateLastLogin(ctx context.Context, user *entities.User) error
 }
 
 type UsersRepository interface {
-	GetUserByUsername(username string) (*entities.User, error)
-	GetUserByID(id string) (*entities.User, error)
-	GetUserIDByUsername(username string) (string, error)
-	UpdateUser(input *infrastructure.UpdateUserParams) (*entities.User, error)
-	Follow(followerID, followedID string) error
-	Unfollow(followerID, followedID string) error
-	IsFollowing(followerID, followedID string) (bool, error)
+	GetUserByUsername(ctx context.Context, username string) (*entities.User, error)
+	GetUserByID(ctx context.Context, id string) (*entities.User, error)
+	GetUserIDByUsername(ctx context.Context, username string) (string, error)
+	UpdateUser(ctx context.Context, input *infrastructure.UpdateUserParams) (*entities.User, error)
+	Follow(ctx context.Context, followerID, followedID string) error
+	Unfollow(ctx context.Context, followerID, followedID string) error
+	IsFollowing(ctx context.Context, followerID, followedID string) (bool, error)
 }
 
 type CatalogRepository interface {
-	GetUserIDByUsername(username string) (string, error)
-	GetUsersList(filter *infrastructure.UserCatalogFilter, viewerID string) ([]infrastructure.UserCardRow, string, error)
+	GetUserIDByUsername(ctx context.Context, username string) (string, error)
+	GetUsersList(ctx context.Context, filter *infrastructure.UserCatalogFilter, viewerID string) ([]infrastructure.UserCardRow, string, error)
 }
 
 type TokenProvider interface {
