@@ -190,3 +190,35 @@ func (r *usersRepository) IsFollowing(ctx context.Context, followerID, followedI
 	}
 	return exists, nil
 }
+
+func (r *usersRepository) GetBriefsByIDs(ctx context.Context, ids []string) ([]dtos.UserBrief, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	sql, args, err := r.psql.Select("id", "username", "display_name", "profile_picture").
+		From("users").
+		Where(sq.Eq{"id": ids}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("get briefs by ids: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx, sql, args...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("get briefs by ids: %w", err)
+	}
+	defer rows.Close()
+
+	briefs := []dtos.UserBrief{}
+	for rows.Next() {
+		var brief dtos.UserBrief
+		if err := rows.Scan(&brief.ID, &brief.Username, &brief.DisplayName, &brief.AvatarURL); err != nil {
+			return nil, fmt.Errorf("get briefs by ids: %w", err)
+		}
+		briefs = append(briefs, brief)
+	}
+	return briefs, nil
+}

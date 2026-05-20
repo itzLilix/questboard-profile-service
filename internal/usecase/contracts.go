@@ -25,9 +25,12 @@ type UsersRepository interface {
 	GetUserByID(ctx context.Context, id string) (*entities.User, error)
 	GetUserIDByUsername(ctx context.Context, username string) (string, error)
 	UpdateUser(ctx context.Context, input *infrastructure.UpdateUserParams) (*entities.User, error)
+	
 	Follow(ctx context.Context, followerID, followedID string) error
 	Unfollow(ctx context.Context, followerID, followedID string) error
 	IsFollowing(ctx context.Context, followerID, followedID string) (bool, error)
+
+	GetBriefsByIDs(ctx context.Context, ids []string) ([]dtos.UserBrief, error)
 }
 
 type CatalogRepository interface {

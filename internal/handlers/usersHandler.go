@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
@@ -25,6 +26,7 @@ func NewUsersHandler(usecase usecase.UsersUsecase, log zerolog.Logger, rbac midd
 
 func (h *usersHandler) RegisterRoutes(app *fiber.App) {
 	users := app.Group("/users")
+
 	users.Get("/:username", h.rbac.Optional(), h.getProfileByUsername)
 	//users.Get("/me", h.rbac.Protected(), h.getMyProfile)
 	users.Patch("/me", h.rbac.Protected(), h.updateProfile)
@@ -36,6 +38,9 @@ func (h *usersHandler) RegisterRoutes(app *fiber.App) {
 
 	users.Post("/:username/follow", h.rbac.Protected(), h.followUser)
 	users.Delete("/:username/follow", h.rbac.Protected(), h.unfollowUser)
+
+	internal := app.Group("/internal")
+	internal.Get("/briefs", h.getBriefs) 
 }
 
 func (h *usersHandler) getProfileByUsername(c fiber.Ctx) error {
@@ -195,4 +200,18 @@ func (h *usersHandler) unfollowUser(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *usersHandler) getBriefs(c fiber.Ctx) error {
+	var ids []string
+	ids = strings.Split(c.Query("ids"), ",")
+	if len(ids) == 0 {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+	briefs, err := h.usecase.GetBriefs(c.Context(), ids)
+	if err != nil {
+		h.log.Error().Err(err).Strs("ids", ids).Msg("error getting user briefs")
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+	return c.Status(fiber.StatusOK).JSON(briefs)
 }

@@ -15,12 +15,17 @@ type UsersUsecase interface {
 	GetPublicProfile(ctx context.Context, viewer *Viewer, username string) (*dtos.PublicProfileData, error)
 	GetPrivateProfile(ctx context.Context, viewer *Viewer) (*dtos.PrivateProfileData, error)
 	UpdateProfile(ctx context.Context, viewer *Viewer, input *UpdateProfileInput) (*dtos.PrivateProfileData, error)
+	
 	UpdateAvatar(ctx context.Context, viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
 	RemoveAvatar(ctx context.Context, viewer *Viewer) (*dtos.PrivateProfileData, error)
+	
 	UpdateBanner(ctx context.Context, viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
 	RemoveBanner(ctx context.Context, viewer *Viewer) (*dtos.PrivateProfileData, error)
+	
 	Follow(ctx context.Context, viewer *Viewer, targetUsername string) error
 	Unfollow(ctx context.Context, viewer *Viewer, targetUsername string) error
+
+	GetBriefs(ctx context.Context, ids []string) ([]dtos.UserBrief, error)
 }
 
 type usersUsecase struct {
@@ -196,3 +201,28 @@ func (s *usersUsecase) Unfollow(ctx context.Context, viewer *Viewer, targetUsern
 	return nil
 }
 
+func (s *usersUsecase) GetBriefs(ctx context.Context, ids []string) ([]dtos.UserBrief, error) {
+	if len(ids) == 0 {
+		return []dtos.UserBrief{}, nil
+	}
+	if len(ids) > 100 {
+		ids = ids[:100]
+	}
+	seen := make(map[string]struct{}, len(ids))
+	deduped := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		deduped = append(deduped, id)
+	}
+	briefs, err := s.repo.GetBriefsByIDs(ctx, deduped)
+	if err != nil {
+		return nil, mapRepoErr("get briefs", err)
+	}
+	return briefs, nil
+}
