@@ -59,6 +59,7 @@ func main() {
 	refreshTokens := infrastructure.NewRefreshTokenManager(cfg.RefreshTTL)
 	passwordHasher := infrastructure.NewPasswordHasher()
 	rbacMiddleware := middleware.NewRBACMiddleware(tokenProvider, log.Logger)
+	internalOnly := middleware.InternalOnly(cfg.InternalToken)
 
 	authRepo := infrastructure.NewAuthRepository(conn, psql)
 	authService := usecase.NewAuthUsecase(authRepo, tokenProvider, refreshTokens, passwordHasher)
@@ -67,7 +68,7 @@ func main() {
 	imageUploader := images.NewLocalImageUploader(cfg.UploadDir, cfg.PublicBaseURL, cfg.MaxUploadSize)
 	usersRepo := infrastructure.NewUsersRepository(conn, psql)
 	usersService := usecase.NewUsersUsecase(usersRepo, imageUploader)
-	usersHandler := handlers.NewUsersHandler(usersService, log.Logger, rbacMiddleware)
+	usersHandler := handlers.NewUsersHandler(usersService, log.Logger, rbacMiddleware, internalOnly)
 
 	catalogRepo := infrastructure.NewCatalogRepository(conn, psql)
 	catalogUsecase := usecase.NewCatalogUsecase(catalogRepo)

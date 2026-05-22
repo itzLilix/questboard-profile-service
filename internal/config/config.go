@@ -18,12 +18,18 @@ type Config struct {
 	UploadDir     string
 	PublicBaseURL string
 	MaxUploadSize int64
+	InternalToken string
 }
 
 func Load() *Config {
 	JWTSecret := getEnv("JWT_SECRET", "")
 	if JWTSecret == "" {
 		panic("JWT_SECRET is required")
+	}
+
+	internalToken := getEnv("INTERNAL_TOKEN", "")
+	if internalToken == "" {
+		panic("INTERNAL_TOKEN is required")
 	}
 
 	return &Config{
@@ -38,6 +44,7 @@ func Load() *Config {
 		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
 		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:3000"),
 		MaxUploadSize: getEnvInt64("MAX_UPLOAD_SIZE", 5*1024*1024),
+		InternalToken: internalToken,
 	}
 }
 

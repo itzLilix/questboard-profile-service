@@ -85,8 +85,7 @@ func (r *catalogRepository) GetUsersList(ctx context.Context, filter *UserCatalo
 
 	if viewerID != "" {
 		q = q.
-			LeftJoin("follows f ON f.followed_id = u.id AND f.follower_id = ?", viewerID).
-			Where(sq.NotEq{"u.id": viewerID})
+			LeftJoin("follows f ON f.followed_id = u.id AND f.follower_id = ?", viewerID)
 	} else {
 		q = q.LeftJoin("follows f ON f.followed_id = u.id")
 	}
@@ -131,7 +130,7 @@ func (r *catalogRepository) GetUsersList(ctx context.Context, filter *UserCatalo
 
 	switch filter.Sort {
 		case dtos.SortRating:
-			q = q.OrderBy("u.rating "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+			q = q.OrderBy("u.rating "+string(filter.SortOrder),"u.reviews_count DESC", "u.id "+string(filter.SortOrder))
 		case dtos.SortRecent:
 			q = q.OrderBy("u.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
 		case dtos.SortFollowedAt:

@@ -26,6 +26,7 @@ type UsersUsecase interface {
 	Unfollow(ctx context.Context, viewer *Viewer, targetUsername string) error
 
 	GetBriefs(ctx context.Context, ids []string) ([]dtos.UserBrief, error)
+	UpdateStats(ctx context.Context, statName dtos.UserStatName, stats map[string]int) error
 }
 
 type usersUsecase struct {
@@ -225,4 +226,20 @@ func (s *usersUsecase) GetBriefs(ctx context.Context, ids []string) ([]dtos.User
 		return nil, mapRepoErr("get briefs", err)
 	}
 	return briefs, nil
+}
+
+func (s *usersUsecase) UpdateStats(ctx context.Context, statName dtos.UserStatName, stats map[string]int) error {
+	if len(stats) == 0 || len(stats) > 50 {
+		return ErrInvalidData
+	}
+
+	for _, v := range stats {
+		if v < 0 { return ErrInvalidData }
+	} 
+
+	err := s.repo.UpdateStats(ctx, statName, stats)
+	if err != nil {
+		return mapRepoErr("update session stats", err)
+	}
+	return nil
 }

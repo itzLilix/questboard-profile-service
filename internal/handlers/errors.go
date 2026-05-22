@@ -9,6 +9,7 @@ var (
 	ErrInvalidSort   error = errors.New("invalid sort parameter")
 	ErrUnauthorized  error = errors.New("user unauthorized")
 	ErrInvalidFilter error = errors.New("invalid filter parameter")
+	ErrBadReq error = errors.New("bad request")
 )
 
 func wrapErrInvalidFilter(filter any) error {

@@ -31,6 +31,7 @@ type UsersRepository interface {
 	IsFollowing(ctx context.Context, followerID, followedID string) (bool, error)
 
 	GetBriefsByIDs(ctx context.Context, ids []string) ([]dtos.UserBrief, error)
+	UpdateStats(ctx context.Context, statName dtos.UserStatName, values map[string]int) error
 }
 
 type CatalogRepository interface {

@@ -12,6 +12,7 @@ var (
     ErrInvalidToken    = errors.New("invalid token")
 	ErrUsernameExists  = errors.New("username already taken")
 	ErrInvalidData	   = errors.New("invalid data")
+	ErrInternal		   = errors.New("internal server error")
 
 	ErrInvalidEmail       = errors.New("invalid email")
 	ErrInvalidUsername    = errors.New("invalid username")

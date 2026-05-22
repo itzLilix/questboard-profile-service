@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/middleware"
 	"github.com/itzLilix/questboard-profile-service/internal/usecase"
+	"github.com/itzLilix/questboard-shared/dtos"
 	"github.com/rs/zerolog"
 )
 
@@ -15,13 +16,14 @@ type UsersHandler interface {
 }
 
 type usersHandler struct {
-	rbac    middleware.RBACMiddleware
-	log     zerolog.Logger
-	usecase usecase.UsersUsecase
+	rbac         middleware.RBACMiddleware
+	internalOnly fiber.Handler
+	log          zerolog.Logger
+	usecase      usecase.UsersUsecase
 }
 
-func NewUsersHandler(usecase usecase.UsersUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware) UsersHandler {
-	return &usersHandler{usecase: usecase, log: log, rbac: rbac}
+func NewUsersHandler(usecase usecase.UsersUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware, internalOnly fiber.Handler) UsersHandler {
+	return &usersHandler{usecase: usecase, log: log, rbac: rbac, internalOnly: internalOnly}
 }
 
 func (h *usersHandler) RegisterRoutes(app *fiber.App) {
@@ -40,7 +42,8 @@ func (h *usersHandler) RegisterRoutes(app *fiber.App) {
 	users.Delete("/:username/follow", h.rbac.Protected(), h.unfollowUser)
 
 	internal := app.Group("/internal")
-	internal.Get("/briefs", h.getBriefs) 
+	internal.Get("/briefs", h.getBriefs)
+	internal.Patch("/stats", h.internalOnly, h.updateStats)
 }
 
 func (h *usersHandler) getProfileByUsername(c fiber.Ctx) error {
@@ -214,4 +217,38 @@ func (h *usersHandler) getBriefs(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 	return c.Status(fiber.StatusOK).JSON(briefs)
+}
+
+func (h *usersHandler) updateStats(c fiber.Ctx) error {
+	type request struct {
+		Stats map[string]int `json:"stats"`
+		StatName string `json:"statName"`
+	}
+	var req request
+	if err := c.Bind().Body(&req); err != nil {
+		h.log.Error().Err(err).Msg("invalid request body in update stats")
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+	
+	statName, err := parseStatName(req.StatName)
+	if err != nil {
+		h.log.Error().Err(err).Msg("invalid request body in update stats")
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	err = h.usecase.UpdateStats(c.Context(), statName, req.Stats)
+	if err != nil {
+		h.log.Error().Err(err).Msg("internal server error")
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func parseStatName(s string) (dtos.UserStatName, error) {
+	v := dtos.UserStatName(s)
+	switch v {
+		case dtos.PlayedStatName, dtos.HostedStatName:
+			return v, nil
+		default: return "", ErrBadReq
+	}
 }

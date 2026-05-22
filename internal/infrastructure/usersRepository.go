@@ -222,3 +222,35 @@ func (r *usersRepository) GetBriefsByIDs(ctx context.Context, ids []string) ([]d
 	}
 	return briefs, nil
 }
+
+func (r *usersRepository) UpdateStats(ctx context.Context, statName dtos.UserStatName, values map[string]int) error {
+	var statCol string
+	switch statName {
+		case dtos.HostedStatName: statCol = "sessions_hosted"
+		case dtos.PlayedStatName: statCol = "sessions_played"
+		default: return fmt.Errorf("invalid statname")
+	} 
+
+	tuples := make([]string, 0, len(values))
+    tArgs := make([]any, 0, len(values)*2)
+    for id, v := range values {
+        tuples = append(tuples, "(?::uuid, ?::int)")
+        tArgs = append(tArgs, id, v)
+    }
+
+	sql, args, err := r.psql.
+        Update("users AS u").
+        Prefix("WITH v(id, val) AS (VALUES "+strings.Join(tuples, ",")+")", tArgs...).
+        Set(statCol, sq.Expr("v.val")).
+        From("v").
+        Where("u.id = v.id").
+        ToSql()
+    if err != nil {
+        return fmt.Errorf("update stats: %w", err)
+    }
+
+    if _, err := r.db.Exec(ctx, sql, args...); err != nil {
+        return fmt.Errorf("update stats: %w", err)
+    }
+    return nil
+}
