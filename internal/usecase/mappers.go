@@ -1,34 +1,10 @@
 package usecase
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/itzLilix/questboard-profile-service/internal/entities"
 	"github.com/itzLilix/questboard-profile-service/internal/infrastructure"
-	"github.com/itzLilix/questboard-shared/cursor"
 	"github.com/itzLilix/questboard-shared/dtos"
 )
-
-func mapRepoErr(op string, err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, infrastructure.ErrUserNotFound) {
-		return ErrUserNotFound
-	}
-	if errors.Is(err, infrastructure.ErrDuplicateUsername) {
-		return ErrUsernameExists
-	}
-	if errors.Is(err, infrastructure.ErrDuplicateEmail) {
-		return ErrEmailExists
-	}
-	if errors.Is(err, cursor.ErrInvalidCursor) {
-		return ErrInvalidCursor
-	}
-	return fmt.Errorf("%s: %w", op, err)
-}
-
 
 func mapUserToPublicProfile(user *entities.User) *dtos.PublicProfileData {
 	if user == nil {

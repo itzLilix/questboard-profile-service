@@ -113,9 +113,6 @@ func (s *usersUsecase) UpdateProfile(ctx context.Context, viewer *Viewer, input 
 
 	user, err := s.repo.UpdateUser(ctx, mapUpdateInputToRepoParams(viewer.UserID, input))
 	if err != nil {
-		if errors.Is(err, infrastructure.ErrNoNewData) {
-			return nil, wrapInvalidDataError(err)
-		}
 		return nil, mapRepoErr("update profile", err)
 	}
 	return mapUserToPrivateProfile(user), nil
@@ -185,7 +182,7 @@ func (s *usersUsecase) Follow(ctx context.Context, viewer *Viewer, targetUsernam
 	}
 
 	if err := s.repo.Follow(ctx, viewer.UserID, followedID); err != nil {
-		return fmt.Errorf("follow: %w", err)
+		return mapRepoErr("follow", err)
 	}
 	return nil
 }

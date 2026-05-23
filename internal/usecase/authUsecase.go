@@ -107,7 +107,10 @@ func (s *authUsecase) Register(ctx context.Context, username, displayname, email
 func (s *authUsecase) Login(ctx context.Context, email, password string) (*dtos.PrivateProfileData, string, string, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return nil, "", "", mapRepoErr("login: get user", err)
+		if errors.Is(err, infrastructure.ErrUserNotFound) {
+			return nil, "", "", ErrWrongPassword
+		}
+		return nil, "", "", fmt.Errorf("login: get user: %w", ErrInternal)
 	}
 
 	err = s.passwordHasher.CompareHashAndPassword(user.PasswordHash, password)

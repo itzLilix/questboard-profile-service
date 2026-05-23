@@ -19,7 +19,14 @@ type Config struct {
 	PublicBaseURL string
 	MaxUploadSize int64
 	InternalToken string
+	Env Environment
 }
+
+type Environment string
+var (
+	DevEnv  Environment = "dev"	
+	ProdEnv Environment = "prod"
+)
 
 func Load() *Config {
 	JWTSecret := getEnv("JWT_SECRET", "")
@@ -45,6 +52,7 @@ func Load() *Config {
 		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:3000"),
 		MaxUploadSize: getEnvInt64("MAX_UPLOAD_SIZE", 5*1024*1024),
 		InternalToken: internalToken,
+		Env: DevEnv,
 	}
 }
 

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -25,8 +25,14 @@ type ListUsersQuery struct {
 	Limit      int      `query:"limit"`
 }
 
+// UserListPage is the paginated catalog response.
+type UserListPage struct {
+	Items      []dtos.ProfileCardData `json:"items"`
+	NextCursor string                 `json:"nextCursor,omitempty"`
+}
+
 type CatalogHandler interface {
-	RegisterRoutes(app *fiber.App)
+	RegisterRoutes(router fiber.Router)
 }
 
 type catalogHandler struct {
@@ -39,38 +45,47 @@ func NewCatalogHandler(usecase usecase.CatalogUsecase, log zerolog.Logger, rbac 
 	return &catalogHandler{usecase: usecase, log: log, rbac: rbac}
 }
 
-func (h *catalogHandler) RegisterRoutes(app *fiber.App) {
-	app.Get("/users/", h.rbac.Optional(), h.list)
+func (h *catalogHandler) RegisterRoutes(router fiber.Router) {
+	router.Get("/users/", h.rbac.Optional(), h.list)
 }
 
+// @summary      List users
+// @tags         catalog
+// @produce      json
+// @param        search      query    string   false  "Search by name or username"
+// @param        format      query    string   false  "Preferred session format"    Enums(online,offline)
+// @param        type        query    string   false  "Preferred session type"      Enums(oneshot,campaign)
+// @param        city        query    string   false  "City"
+// @param        minRating   query    number   false  "Minimum rating (0–5)"
+// @param        followedBy  query    string   false  "Filter by follower (user ID or 'me')"
+// @param        onlyGMs     query    boolean  false  "Only show game masters"
+// @param        sort        query    string   false  "Sort field"      Enums(rating,recent,followedAt,reviews,sessions)
+// @param        order       query    string   false  "Sort direction"  Enums(ASC,DESC)
+// @param        cursor      query    string   false  "Pagination cursor"
+// @param        limit       query    integer  false  "Page size (1–100, default 32)"
+// @success      200  {object}  UserListPage
+// @failure      400  {object}  ErrorResponse
+// @failure      401  {object}  ErrorResponse
+// @failure      500  {object}  ErrorResponse
+// @router       /v1/users/ [get]
 func (h *catalogHandler) list(c fiber.Ctx) error {
 	var q ListUsersQuery
 	viewer := viewerFromCtx(c)
 
 	if err := c.Bind().Query(&q); err != nil {
-		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("unable bind request params")
-		return c.SendStatus(fiber.StatusBadRequest)
+		return handleErr(c, usecase.ErrInvalidData)
 	}
 
 	filter, err := mapQueryToFilter(&q, viewer)
 	if err != nil {
 		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("invalid request params")
-		if errors.Is(err, ErrUnauthorized) {
-			return c.SendStatus(fiber.StatusUnauthorized)
-		}
-		return c.SendStatus(fiber.StatusBadRequest)
+		return handleErr(c, err)
 	}
 
 	resp, err := h.usecase.ListUsers(c.Context(), viewer, *filter)
 	if err != nil {
-		if errors.Is(err, usecase.ErrUserNotFound) {
-			return c.SendStatus(fiber.StatusNotFound)
-		}
-		if errors.Is(err, usecase.ErrInvalidCursor) {
-			return c.SendStatus(fiber.StatusBadRequest)
-		}
-		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("error listing users")
-		return c.SendStatus(fiber.StatusInternalServerError)
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("list users failed")
+		return handleErr(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(resp)
 }
@@ -80,7 +95,7 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.Viewer) (*usecase.ListU
 		q.Limit = 32
 	}
 	if q.MinRating < 0 || q.MinRating > 5 {
-		return nil, wrapErrInvalidFilter(q.MinRating)
+		return nil, fmt.Errorf("%w: invalid filter parameter", ErrBadReq)
 	}
 
 	format, err := parseSessionFormat(q.Format)
@@ -105,7 +120,7 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.Viewer) (*usecase.ListU
 	}
 	
 	if sort == dtos.SortFollowedAt && q.FollowedBy == "" {
-		return nil, ErrInvalidSort
+		return nil, fmt.Errorf("%w: invalid sort parameter", ErrBadReq)
 	}
 
 	return &usecase.ListUsersFilter{
@@ -132,7 +147,7 @@ func parseSessionFormat(s string) (dtos.SessionFormat, error) {
 		case dtos.Online, dtos.Offline:
 			return v, nil
 		default:
-			return "", ErrInvalidFilter
+			return "", fmt.Errorf("%w: invalid filter parameter", ErrBadReq)
 	}
 }
 
@@ -145,7 +160,7 @@ func parseSessionType(s string) (dtos.SessionType, error) {
 		case dtos.OneshotType, dtos.CampaignType:
 			return v, nil
 		default:
-			return "", ErrInvalidFilter
+			return "", fmt.Errorf("%w: invalid filter parameter", ErrBadReq)
 	}
 }
 
@@ -158,7 +173,7 @@ func parseSort(s string) (dtos.UserListSort, error) {
 		case dtos.SortRating, dtos.SortRecent, dtos.SortFollowedAt, dtos.SortReviewsCount, dtos.SortSessionsCount:
 			return v, nil
 		default:
-			return "", ErrInvalidSort
+			return "", fmt.Errorf("%w: invalid sort parameter", ErrBadReq)
 	}
 }
 
@@ -172,6 +187,6 @@ func parseSortOrder(s string) (dtos.SortOrder, error) {
 		case dtos.SortAsc, dtos.SortDesc:
 			return v, nil
 		default:
-			return "", ErrInvalidSort
+			return "", fmt.Errorf("%w: invalid sort parameter", ErrBadReq)
 	}
 }

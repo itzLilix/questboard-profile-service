@@ -19,51 +19,51 @@ var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_.\-]+$`)
 
 func validateEmail(email string) error {
 	if email == "" || len(email) > maxEmailLen {
-		return ErrInvalidEmail
+		return ErrInvalidData
 	}
 	if _, err := mail.ParseAddress(email); err != nil {
-		return ErrInvalidEmail
+		return ErrInvalidData
 	}
 	return nil
 }
 
 func validateUsername(username string) error {
 	if username == "" || len(username) > maxUsernameLen {
-		return ErrInvalidUsername
+		return ErrInvalidData
 	}
 	if !usernameRegex.MatchString(username) {
-		return ErrInvalidUsername
+		return ErrInvalidData
 	}
 	return nil
 }
 
 func validateDisplayName(displayName string) error {
 	if displayName == "" || utf8.RuneCountInString(displayName) > maxDisplayNameLen {
-		return ErrInvalidDisplayName
+		return ErrInvalidData
 	}
 	return nil
 }
 
 func validateURL(inputUrl string) error {
 	if len(inputUrl) > maxURLLen {
-		return ErrInvalidURL
+		return ErrInvalidData
 	}
 	parsed, err := url.Parse(inputUrl)
 	if err != nil {
-		return ErrInvalidURL
+		return ErrInvalidData
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return ErrInvalidURL
+		return ErrInvalidData
 	}
 	if parsed.Host == "" {
-		return ErrInvalidURL
+		return ErrInvalidData
 	}
 	return nil
 }
 
 func validateBio(bio string) error {
 	if len(bio) > maxBioLen {
-		return ErrInvalidBio
+		return ErrInvalidData
 	}
 	return nil
 }

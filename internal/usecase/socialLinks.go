@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -9,30 +8,30 @@ import (
 )
 
 var platformHosts = map[string][]string{
-	"telegram":  {"t.me", "telegram.me"},
-	"discord":   {"discord.gg", "discord.com"},
-	"twitch":    {"twitch.tv"},
-	"youtube":   {"youtube.com", "youtu.be"},
-	"x":         {"twitter.com", "x.com"},
-	"patreon":   {"patreon.com"},
-	"vkontakte": {"vk.com"},
+	"telegram":      {"t.me", "telegram.me"},
+	"discord":       {"discord.gg", "discord.com"},
+	"twitch":        {"twitch.tv"},
+	"youtube":       {"youtube.com", "youtu.be"},
+	"x":             {"twitter.com", "x.com"},
+	"patreon":       {"patreon.com"},
+	"vkontakte":     {"vk.com"},
 	"odnoklassniki": {"ok.ru"},
-	"facebook":  {"facebook.com"},
-	"instagram": {"instagram.com"},
-	"tiktok":    {"tiktok.com"},
-	"bluesky":   {"bsky.app"},
-	"whatsapp":  {"wa.me", "whatsapp.com"},
-	"pinterest": {"pinterest.com", "pinterest.ru"},
-	"kofi":      {"ko-fi.com"},
-	"roll20":    {"roll20.net"},
-	"reddit":    {"reddit.com"},
-	"snapchat":  {"snapchat.com"},
+	"facebook":      {"facebook.com"},
+	"instagram":     {"instagram.com"},
+	"tiktok":        {"tiktok.com"},
+	"bluesky":       {"bsky.app"},
+	"whatsapp":      {"wa.me", "whatsapp.com"},
+	"pinterest":     {"pinterest.com", "pinterest.ru"},
+	"kofi":          {"ko-fi.com"},
+	"roll20":        {"roll20.net"},
+	"reddit":        {"reddit.com"},
+	"snapchat":      {"snapchat.com"},
 }
 
 func validateAndNormalize(link dtos.Link) (dtos.Link, error) {
 	u, err := url.Parse(link.URL)
 	if err != nil || u.Host == "" {
-		return dtos.Link{}, ErrInvalidURL
+		return dtos.Link{}, ErrInvalidData
 	}
 
 	host := strings.ToLower(u.Host)
@@ -43,7 +42,7 @@ func validateAndNormalize(link dtos.Link) (dtos.Link, error) {
 
 	allowedHosts, ok := platformHosts[link.Type]
 	if !ok {
-		return dtos.Link{}, fmt.Errorf("unknown platform")
+		return dtos.Link{}, ErrInvalidData
 	}
 
 	valid := false
@@ -54,7 +53,7 @@ func validateAndNormalize(link dtos.Link) (dtos.Link, error) {
 		}
 	}
 	if !valid {
-		return dtos.Link{}, fmt.Errorf("URL does not match platform")
+		return dtos.Link{}, ErrInvalidData
 	}
 
 	u.Scheme = "https"
@@ -66,4 +65,3 @@ func validateAndNormalize(link dtos.Link) (dtos.Link, error) {
 		URL:  u.String(),
 	}, nil
 }
-

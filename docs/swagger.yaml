@@ -1,0 +1,732 @@
+basePath: /
+definitions:
+  dtos.Link:
+    properties:
+      type:
+        type: string
+      url:
+        type: string
+    type: object
+  dtos.PrivateProfileData:
+    properties:
+      avatarUrl:
+        type: string
+      bannerUrl:
+        type: string
+      bio:
+        type: string
+      createdAt:
+        type: string
+      displayName:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      isEmailVerified:
+        type: boolean
+      isFollowed:
+        type: boolean
+      lastLogin:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/dtos.Link'
+        type: array
+      rating:
+        type: number
+      reviewsCount:
+        type: integer
+      role:
+        $ref: '#/definitions/dtos.Role'
+      sessionsHosted:
+        type: integer
+      sessionsPlayed:
+        type: integer
+      username:
+        type: string
+    type: object
+  dtos.ProfileCardData:
+    properties:
+      avatarUrl:
+        type: string
+      bannerUrl:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      isFollowed:
+        type: boolean
+      preferredFormat:
+        $ref: '#/definitions/dtos.SessionFormat'
+      preferredType:
+        $ref: '#/definitions/dtos.SessionType'
+      rating:
+        type: number
+      reviewsCount:
+        type: integer
+      sessionsHosted:
+        type: integer
+      sessionsPlayed:
+        type: integer
+      username:
+        type: string
+    type: object
+  dtos.PublicProfileData:
+    properties:
+      avatarUrl:
+        type: string
+      bannerUrl:
+        type: string
+      bio:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      isFollowed:
+        type: boolean
+      links:
+        items:
+          $ref: '#/definitions/dtos.Link'
+        type: array
+      rating:
+        type: number
+      reviewsCount:
+        type: integer
+      sessionsHosted:
+        type: integer
+      sessionsPlayed:
+        type: integer
+      username:
+        type: string
+    type: object
+  dtos.Role:
+    enum:
+    - user
+    - admin
+    type: string
+    x-enum-varnames:
+    - UserRole
+    - AdminRole
+  dtos.SessionFormat:
+    enum:
+    - online
+    - offline
+    type: string
+    x-enum-varnames:
+    - Online
+    - Offline
+  dtos.SessionType:
+    enum:
+    - oneshot
+    - campaign
+    type: string
+    x-enum-varnames:
+    - OneshotType
+    - CampaignType
+  dtos.UserBrief:
+    properties:
+      avatarUrl:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_itzLilix_questboard-profile-service_internal_usecase.UpdateProfileInput:
+    properties:
+      bio:
+        type: string
+      displayName:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/dtos.Link'
+        type: array
+      username:
+        type: string
+    type: object
+  internal_handlers.ErrorResponse:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  internal_handlers.LoginRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: Secret123!
+        type: string
+    type: object
+  internal_handlers.SignupRequest:
+    properties:
+      displayName:
+        example: John Doe
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: Secret123!
+        type: string
+      username:
+        example: johndoe
+        type: string
+    type: object
+  internal_handlers.UpdateStatsRequest:
+    properties:
+      statName:
+        enum:
+        - played
+        - hosted
+        type: string
+      stats:
+        additionalProperties:
+          type: integer
+        type: object
+    type: object
+  internal_handlers.UserListPage:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dtos.ProfileCardData'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  internal_handlers.authResponse:
+    properties:
+      avatarUrl:
+        type: string
+      bannerUrl:
+        type: string
+      bio:
+        type: string
+      createdAt:
+        type: string
+      displayName:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      isEmailVerified:
+        type: boolean
+      isFollowed:
+        type: boolean
+      lastLogin:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/dtos.Link'
+        type: array
+      rating:
+        type: number
+      reviewsCount:
+        type: integer
+      role:
+        $ref: '#/definitions/dtos.Role'
+      sessionsHosted:
+        type: integer
+      sessionsPlayed:
+        type: integer
+      username:
+        type: string
+    type: object
+host: localhost:5137
+info:
+  contact: {}
+  description: Profile, auth and user catalog API for Session Zero
+  title: Session Zero Profile Service
+  version: "1.0"
+paths:
+  /internal/briefs:
+    get:
+      parameters:
+      - description: Comma-separated user IDs
+        in: query
+        name: ids
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dtos.UserBrief'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Get user briefs by IDs
+      tags:
+      - internal
+  /internal/stats:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Internal service token
+        in: header
+        name: X-Internal-Token
+        required: true
+        type: string
+      - description: Stats payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.UpdateStatsRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Update user stats (internal)
+      tags:
+      - internal
+  /v1/auth/activate/{link}:
+    get:
+      parameters:
+      - description: Activation link
+        in: path
+        name: link
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Activate account
+      tags:
+      - auth
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Login
+      tags:
+      - auth
+  /v1/auth/logout:
+    post:
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Logout
+      tags:
+      - auth
+  /v1/auth/refresh:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.authResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Refresh tokens
+      tags:
+      - auth
+  /v1/auth/signup:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handlers.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Sign up
+      tags:
+      - auth
+  /v1/users/:
+    get:
+      parameters:
+      - description: Search by name or username
+        in: query
+        name: search
+        type: string
+      - description: Preferred session format
+        enum:
+        - online
+        - offline
+        in: query
+        name: format
+        type: string
+      - description: Preferred session type
+        enum:
+        - oneshot
+        - campaign
+        in: query
+        name: type
+        type: string
+      - description: City
+        in: query
+        name: city
+        type: string
+      - description: Minimum rating (0–5)
+        in: query
+        name: minRating
+        type: number
+      - description: Filter by follower (user ID or 'me')
+        in: query
+        name: followedBy
+        type: string
+      - description: Only show game masters
+        in: query
+        name: onlyGMs
+        type: boolean
+      - description: Sort field
+        enum:
+        - rating
+        - recent
+        - followedAt
+        - reviews
+        - sessions
+        in: query
+        name: sort
+        type: string
+      - description: Sort direction
+        enum:
+        - ASC
+        - DESC
+        in: query
+        name: order
+        type: string
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Page size (1–100, default 32)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.UserListPage'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: List users
+      tags:
+      - catalog
+  /v1/users/{username}:
+    get:
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PublicProfileData'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      summary: Get public profile
+      tags:
+      - users
+  /v1/users/{username}/follow:
+    delete:
+      parameters:
+      - description: Target username
+        in: path
+        name: username
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Unfollow user
+      tags:
+      - users
+    post:
+      parameters:
+      - description: Target username
+        in: path
+        name: username
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Follow user
+      tags:
+      - users
+  /v1/users/me:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Fields to update (all optional)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_itzLilix_questboard-profile-service_internal_usecase.UpdateProfileInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PrivateProfileData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Update my profile
+      tags:
+      - users
+  /v1/users/me/avatar:
+    delete:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PrivateProfileData'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Remove avatar
+      tags:
+      - users
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Avatar image (JPEG/PNG/WebP)
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PrivateProfileData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Upload avatar
+      tags:
+      - users
+  /v1/users/me/banner:
+    delete:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PrivateProfileData'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Remove banner
+      tags:
+      - users
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Banner image (JPEG/PNG/WebP)
+        in: formData
+        name: banner
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PrivateProfileData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Upload banner
+      tags:
+      - users
+securityDefinitions:
+  CookieAuth:
+    in: cookie
+    name: access_token
+    type: apiKey
+swagger: "2.0"

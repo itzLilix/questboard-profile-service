@@ -5,6 +5,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/static"
@@ -20,6 +21,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// @title          Session Zero Profile Service
+// @version        1.0
+// @description    Profile, auth and user catalog API for Session Zero
+// @host           localhost:5137
+// @BasePath       /
+// @securityDefinitions.apikey  CookieAuth
+// @in             cookie
+// @name           access_token
 func main() {
 	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}).
 		With().Timestamp().Logger()
@@ -41,6 +50,9 @@ func main() {
 	app.Use(middleware.Logger(log.Logger))
 
 	app.Get("/uploads/*", static.New(cfg.UploadDir))
+	if cfg.Env != config.ProdEnv {
+   		app.Get("/swagger/*", swaggo.HandlerDefault)
+	}
 
 	conn, err := infrastructure.Connect(cfg.DatabaseURL, int32(cfg.MinPoolSize), int32(cfg.MaxPoolSize))
 	if err != nil {
@@ -74,9 +86,11 @@ func main() {
 	catalogUsecase := usecase.NewCatalogUsecase(catalogRepo)
 	catalogHandler := handlers.NewCatalogHandler(catalogUsecase, log.Logger, rbacMiddleware)
 
-	authHandler.RegisterRoutes(app)
-	usersHandler.RegisterRoutes(app)
-	catalogHandler.RegisterRoutes(app)
+	v1 := app.Group("/v1")
+	authHandler.RegisterRoutes(v1)
+	usersHandler.RegisterRoutes(v1)
+	usersHandler.RegisterInternalRoutes(v1)
+	catalogHandler.RegisterRoutes(v1)
 
 	log.Fatal().Err(app.Listen(":" + cfg.ServerPort)).Msg("server stopped")
 }
