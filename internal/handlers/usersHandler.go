@@ -20,7 +20,7 @@ type usersHandler struct {
 	rbac         middleware.RBACMiddleware
 	internalOnly fiber.Handler
 	log          zerolog.Logger
-	usecase      usecase.UsersUsecase
+	usecase      UsersUsecase
 }
 
 // UpdateStatsRequest is the body for PATCH /internal/stats.
@@ -29,7 +29,7 @@ type UpdateStatsRequest struct {
 	StatName string         `json:"statName" enums:"played,hosted"`
 }
 
-func NewUsersHandler(usecase usecase.UsersUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware, internalOnly fiber.Handler) UsersHandler {
+func NewUsersHandler(usecase UsersUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware, internalOnly fiber.Handler) UsersHandler {
 	return &usersHandler{usecase: usecase, log: log, rbac: rbac, internalOnly: internalOnly}
 }
 

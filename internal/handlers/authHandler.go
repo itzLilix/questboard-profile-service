@@ -14,7 +14,7 @@ type AuthHandler interface {
 }
 
 type authHandler struct {
-	usecase usecase.AuthUsecase
+	usecase AuthUsecase
 	log     zerolog.Logger
 	cfg     *config.Config
 }
@@ -41,7 +41,7 @@ const (
 	refreshCookie = "refresh_token"
 )
 
-func NewAuthHandler(usecase usecase.AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
+func NewAuthHandler(usecase AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
 	return &authHandler{usecase: usecase, log: log, cfg: cfg}
 }
 

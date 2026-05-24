@@ -11,24 +11,6 @@ import (
 	"github.com/itzLilix/questboard-shared/images"
 )
 
-type UsersUsecase interface {
-	GetPublicProfile(ctx context.Context, viewer *Viewer, username string) (*dtos.PublicProfileData, error)
-	GetPrivateProfile(ctx context.Context, viewer *Viewer) (*dtos.PrivateProfileData, error)
-	UpdateProfile(ctx context.Context, viewer *Viewer, input *UpdateProfileInput) (*dtos.PrivateProfileData, error)
-	
-	UpdateAvatar(ctx context.Context, viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
-	RemoveAvatar(ctx context.Context, viewer *Viewer) (*dtos.PrivateProfileData, error)
-	
-	UpdateBanner(ctx context.Context, viewer *Viewer, file *multipart.FileHeader) (*dtos.PrivateProfileData, error)
-	RemoveBanner(ctx context.Context, viewer *Viewer) (*dtos.PrivateProfileData, error)
-	
-	Follow(ctx context.Context, viewer *Viewer, targetUsername string) error
-	Unfollow(ctx context.Context, viewer *Viewer, targetUsername string) error
-
-	GetBriefs(ctx context.Context, ids []string) ([]dtos.UserBrief, error)
-	UpdateStats(ctx context.Context, statName dtos.UserStatName, stats map[string]int) error
-}
-
 type usersUsecase struct {
 	repo   UsersRepository
 	images ImageUploader
@@ -41,7 +23,7 @@ type UpdateProfileInput struct {
 	Links       []dtos.Link `json:"links"`
 }
 
-func NewUsersUsecase(repo UsersRepository, images ImageUploader) UsersUsecase {
+func NewUsersUsecase(repo UsersRepository, images ImageUploader) *usersUsecase {
 	return &usersUsecase{repo: repo, images: images}
 }
 

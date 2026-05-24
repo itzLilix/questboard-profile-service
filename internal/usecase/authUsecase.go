@@ -11,13 +11,7 @@ import (
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
-type AuthUsecase interface {
-	Register(ctx context.Context, username, displayname, email, password string) (*dtos.PrivateProfileData, string, string, error)
-	Login(ctx context.Context, username, password string) (*dtos.PrivateProfileData, string, string, error)
-	Logout(ctx context.Context, refreshToken string) error
-	ValidateToken(ctx context.Context, tokenString string) (*dtos.PrivateProfileData, error)
-	RefreshTokens(ctx context.Context, refreshToken string) (*dtos.PrivateProfileData, string, string, error)
-}
+
 
 type authUsecase struct {
 	repo           AuthRepository
@@ -35,7 +29,7 @@ func NewAuthUsecase(
 	tokenProvider TokenProvider,
 	refreshTokens RefreshTokenManager,
 	passwordHasher PasswordHasher,
-) AuthUsecase {
+) *authUsecase {
 	return &authUsecase{
 		repo:           repo,
 		tokenProvider:  tokenProvider,

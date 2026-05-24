@@ -195,7 +195,7 @@ func (r *usersRepository) GetBriefsByIDs(ctx context.Context, ids []string) ([]d
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	sql, args, err := r.psql.Select("id", "username", "display_name", "profile_picture").
+	sql, args, err := r.psql.Select("id", "username", "display_name", "profile_picture", "rating", "sessions_played", "sessions_hosted").
 		From("users").
 		Where(sq.Eq{"id": ids}).
 		ToSql()
@@ -215,9 +215,10 @@ func (r *usersRepository) GetBriefsByIDs(ctx context.Context, ids []string) ([]d
 	briefs := []dtos.UserBrief{}
 	for rows.Next() {
 		var brief dtos.UserBrief
-		if err := rows.Scan(&brief.ID, &brief.Username, &brief.DisplayName, &brief.AvatarURL); err != nil {
+		if err := rows.Scan(&brief.ID, &brief.Username, &brief.DisplayName, &brief.AvatarURL, &brief.Rating, &brief.Played, &brief.Hosted); err != nil {
 			return nil, fmt.Errorf("get briefs by ids: %w", err)
 		}
+		fmt.Println(brief.Rating)
 		briefs = append(briefs, brief)
 	}
 	return briefs, nil

@@ -6,10 +6,6 @@ import (
 	"github.com/itzLilix/questboard-shared/dtos"
 )
 
-type CatalogUsecase interface {
-	ListUsers(ctx context.Context, viewer *Viewer, filter ListUsersFilter) (*dtos.Page[dtos.ProfileCardData], error)
-}
-
 type ListUsersFilter struct {
 	Search     		string
 	Format    		dtos.SessionFormat

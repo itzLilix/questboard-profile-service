@@ -36,12 +36,12 @@ type CatalogHandler interface {
 }
 
 type catalogHandler struct {
-	usecase usecase.CatalogUsecase
+	usecase CatalogUsecase
 	log zerolog.Logger
 	rbac middleware.RBACMiddleware
 }
 
-func NewCatalogHandler(usecase usecase.CatalogUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware) CatalogHandler {
+func NewCatalogHandler(usecase CatalogUsecase, log zerolog.Logger, rbac middleware.RBACMiddleware) CatalogHandler {
 	return &catalogHandler{usecase: usecase, log: log, rbac: rbac}
 }
 
