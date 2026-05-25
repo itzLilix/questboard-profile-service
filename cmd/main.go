@@ -24,7 +24,7 @@ import (
 // @title          Session Zero Profile Service
 // @version        1.0
 // @description    Profile, auth and user catalog API for Session Zero
-// @host           localhost:5137
+// @host           localhost:3000
 // @BasePath       /
 // @securityDefinitions.apikey  CookieAuth
 // @in             cookie
