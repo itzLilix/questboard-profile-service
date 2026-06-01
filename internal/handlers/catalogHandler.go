@@ -12,10 +12,10 @@ import (
 )
 
 type ListUsersQuery struct {
-	Search     string   `query:"search"`
-	Format     string 	`query:"format"`
-	Type       string 	`query:"type"`
-	City 	   string   `query:"city"`
+	Search     string             `query:"search"`
+	Format     dtos.SessionFormat `query:"format"`
+	Type       dtos.SessionType   `query:"type"`
+	City 	   string             `query:"city"`
 	MinRating  float64  `query:"minRating"`
 	FollowedBy string   `query:"followedBy"`
 	OnlyGMs	   bool		`query:"onlyGMs"`
@@ -98,14 +98,6 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.Viewer) (*usecase.ListU
 		return nil, fmt.Errorf("%w: invalid filter parameter", ErrBadReq)
 	}
 
-	format, err := parseSessionFormat(q.Format)
-	if err != nil {
-		return nil, err
-	}
-	sessionType, err := parseSessionType(q.Type)
-	if err != nil {
-		return nil, err
-	}
 	sort, err := parseSort(q.Sort)
 	if err != nil {
 		return nil, err
@@ -125,8 +117,8 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.Viewer) (*usecase.ListU
 
 	return &usecase.ListUsersFilter{
 		Search:     q.Search,
-		Format:     format,
-		Type:       sessionType,
+		Format:     q.Format,
+		Type:       q.Type,
 		City:       q.City,
 		MinRating:  q.MinRating,
 		FollowedBy: q.FollowedBy,
@@ -136,32 +128,6 @@ func mapQueryToFilter(q *ListUsersQuery, viewer *usecase.Viewer) (*usecase.ListU
 		Cursor:     q.Cursor,
 		Limit:      uint64(q.Limit),
 	}, nil
-}
-
-func parseSessionFormat(s string) (dtos.SessionFormat, error) {
-	if s == "" {
-		return "", nil
-	}
-	v := dtos.SessionFormat(s)
-	switch v {
-		case dtos.Online, dtos.Offline:
-			return v, nil
-		default:
-			return "", fmt.Errorf("%w: invalid filter parameter", ErrBadReq)
-	}
-}
-
-func parseSessionType(s string) (dtos.SessionType, error) {
-	if s == "" {
-		return "", nil
-	}
-	v := dtos.SessionType(s)
-	switch v {
-		case dtos.OneshotType, dtos.CampaignType:
-			return v, nil
-		default:
-			return "", fmt.Errorf("%w: invalid filter parameter", ErrBadReq)
-	}
 }
 
 func parseSort(s string) (dtos.UserListSort, error) {
