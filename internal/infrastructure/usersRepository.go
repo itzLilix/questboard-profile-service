@@ -218,7 +218,6 @@ func (r *usersRepository) GetBriefsByIDs(ctx context.Context, ids []string) ([]d
 		if err := rows.Scan(&brief.ID, &brief.Username, &brief.DisplayName, &brief.AvatarURL, &brief.Rating, &brief.Played, &brief.Hosted); err != nil {
 			return nil, fmt.Errorf("get briefs by ids: %w", err)
 		}
-		fmt.Println(brief.Rating)
 		briefs = append(briefs, brief)
 	}
 	return briefs, nil
