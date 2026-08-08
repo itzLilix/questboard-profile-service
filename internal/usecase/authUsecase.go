@@ -53,12 +53,7 @@ func (s *authUsecase) ValidateToken(ctx context.Context, tokenString string) (*d
 }
 
 func (s *authUsecase) Register(ctx context.Context, username, displayname, email, password string) (*dtos.PrivateProfileData, string, string, error) {
-	passwordHash, err := s.passwordHasher.HashPassword(password)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
-	}
-
-	err = validateUsername(username)
+	err := validateUsername(username)
 	if err != nil {
 		return nil, "", "", wrapInvalidDataError(err)
 	}
@@ -71,6 +66,11 @@ func (s *authUsecase) Register(ctx context.Context, username, displayname, email
 	err = validateDisplayName(displayname)
 	if err != nil {
 		return nil, "", "", wrapInvalidDataError(err)
+	}
+
+	passwordHash, err := s.passwordHasher.HashPassword(password)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("register: hash password: %w", err)
 	}
 
 	user := &entities.User{
@@ -178,7 +178,7 @@ func (s *authUsecase) RefreshTokens(ctx context.Context, clientToken string) (*d
 	if len(clientToken) < refreshTokenPrefixLength {
     	return nil, "", "", ErrInvalidToken
 	}
-	
+
 	prefix := clientToken[:refreshTokenPrefixLength]
 	storedToken, err := s.repo.GetRefreshTokenByPrefix(ctx, prefix)
 	if err != nil {

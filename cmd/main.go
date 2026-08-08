@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -92,5 +95,20 @@ func main() {
 	usersHandler.RegisterInternalRoutes(v1)
 	catalogHandler.RegisterRoutes(v1)
 
-	log.Fatal().Err(app.Listen(":" + cfg.ServerPort)).Msg("server stopped")
+	go func() {
+		if err := app.Listen(":" + cfg.ServerPort); err != nil {
+			log.Fatal().Err(err).Msg("server stopped")
+		}
+	}()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	<-ctx.Done()
+
+	log.Info().Msg("shutdown signal received, draining connections")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+		log.Error().Err(err).Msg("graceful shutdown failed")
+	}
 }

@@ -74,20 +74,42 @@ func (r *catalogRepository) GetUsersList(ctx context.Context, filter *UserCatalo
 		filter.SortOrder = dtos.SortDesc
 	}
 
+	// followed_at only exists on the followedBy join; without that filter the
+	// sort key is meaningless, so fall back to the default ordering.
+	if filter.Sort == dtos.SortFollowedAt && filter.FollowedByID == "" {
+		filter.Sort = ""
+	}
+
 	cursor, err := cursor.DecodeCursor[catalogCursor](filter.Cursor)
 	if err != nil {
 		return nil, "", err
 	}
 
+	// fb = the list owner's follow edge (followedBy filter, followed_at sort);
+	// fv = the viewer's own follow edge (is_followed flag). They differ when
+	// browsing someone else's following list.
+	cols := append([]string{}, userCardBaseCols...)
+	if viewerID != "" {
+		cols = append(cols, "(fv.followed_id IS NOT NULL) AS is_followed")
+	} else {
+		cols = append(cols, "FALSE AS is_followed")
+	}
+	cols = append(cols, "u.created_at")
+	if filter.FollowedByID != "" {
+		cols = append(cols, "fb.created_at AS followed_at")
+	} else {
+		cols = append(cols, "NULL::timestamp AS followed_at")
+	}
+
 	q := r.psql.
-		Select(UserCardRowCols...).
+		Select(cols...).
 		From("users u")
 
+	if filter.FollowedByID != "" {
+		q = q.Join("follows fb ON fb.followed_id = u.id AND fb.follower_id = ?", filter.FollowedByID)
+	}
 	if viewerID != "" {
-		q = q.
-			LeftJoin("follows f ON f.followed_id = u.id AND f.follower_id = ?", viewerID)
-	} else {
-		q = q.LeftJoin("follows f ON f.followed_id = u.id")
+		q = q.LeftJoin("follows fv ON fv.followed_id = u.id AND fv.follower_id = ?", viewerID)
 	}
 	if filter.Search != "" {
 		q = q.Where(sq.Or{
@@ -113,9 +135,6 @@ func (r *catalogRepository) GetUsersList(ctx context.Context, filter *UserCatalo
 	if filter.MinRating > 0 {
 		q = q.Where(sq.GtOrEq{"u.rating": filter.MinRating})
 	}
-	if filter.FollowedByID != "" {
-		q = q.Where(sq.Eq{"f.follower_id": filter.FollowedByID})
-	}
 	if filter.FollowedByID == "" {
 		q = q.Where(sq.Eq{"u.is_visible_in_catalog": true})
 	}
@@ -134,7 +153,7 @@ func (r *catalogRepository) GetUsersList(ctx context.Context, filter *UserCatalo
 		case dtos.SortRecent:
 			q = q.OrderBy("u.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
 		case dtos.SortFollowedAt:
-			q = q.OrderBy("f.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
+			q = q.OrderBy("fb.created_at "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
 		case dtos.SortReviewsCount:
 			q = q.OrderBy("u.reviews_count "+string(filter.SortOrder), "u.id "+string(filter.SortOrder))
 		case dtos.SortSessionsCount:

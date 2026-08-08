@@ -36,6 +36,7 @@ func NewUsersHandler(usecase UsersUsecase, log zerolog.Logger, rbac middleware.R
 func (h *usersHandler) RegisterRoutes(router fiber.Router) {
 	users := router.Group("/users")
 
+	users.Get("/me", h.rbac.Protected(), h.getMe)
 	users.Get("/:username", h.rbac.Optional(), h.getProfileByUsername)
 	users.Patch("/me", h.rbac.Protected(), h.updateProfile)
 
@@ -49,9 +50,9 @@ func (h *usersHandler) RegisterRoutes(router fiber.Router) {
 }
 
 func (h *usersHandler) RegisterInternalRoutes(router fiber.Router) {
-	internal := router.Group("/internal")
+	internal := router.Group("/internal", h.internalOnly)
 	internal.Get("/briefs", h.getBriefs)
-	internal.Patch("/stats", h.internalOnly, h.updateStats)
+	internal.Patch("/stats", h.updateStats)
 }
 
 // @summary      Get public profile
@@ -71,6 +72,25 @@ func (h *usersHandler) getProfileByUsername(c fiber.Ctx) error {
 		return handleErr(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(profile)
+}
+
+// @summary      Get my profile
+// @tags         users
+// @produce      json
+// @security     CookieAuth
+// @success      200  {object}  dtos.PrivateProfileData
+// @failure      401  {object}  ErrorResponse
+// @failure      404  {object}  ErrorResponse
+// @failure      500  {object}  ErrorResponse
+// @router       /v1/users/me [get]
+func (h *usersHandler) getMe(c fiber.Ctx) error {
+	viewer := viewerFromCtx(c)
+	user, err := h.usecase.GetPrivateProfile(c.Context(), viewer)
+	if err != nil {
+		h.log.Error().Err(err).Str("userID", viewer.UserID).Msg("get private profile failed")
+		return handleErr(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(user)
 }
 
 // @summary      Update my profile
@@ -225,9 +245,11 @@ func (h *usersHandler) unfollowUser(c fiber.Ctx) error {
 // @summary      Get user briefs by IDs
 // @tags         internal
 // @produce      json
-// @param        ids  query     string          true  "Comma-separated user IDs"
+// @param        X-Internal-Token  header    string  true  "Internal service token"
+// @param        ids               query     string  true  "Comma-separated user IDs"
 // @success      200  {array}   dtos.UserBrief
 // @failure      400  {object}  ErrorResponse
+// @failure      401  {object}  ErrorResponse
 // @failure      500  {object}  ErrorResponse
 // @router       /internal/briefs [get]
 func (h *usersHandler) getBriefs(c fiber.Ctx) error {

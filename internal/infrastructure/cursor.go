@@ -48,7 +48,7 @@ func applyCursor(q sq.SelectBuilder, c *catalogCursor, sort dtos.UserListSort, o
 		if c.FollowedAt == nil {
 			return q, cursor.ErrInvalidCursor
 		}
-		return q.Where(fmt.Sprintf("(f.created_at, u.id) %s (?, ?)", op), *c.FollowedAt, c.ID), nil
+		return q.Where(fmt.Sprintf("(fb.created_at, u.id) %s (?, ?)", op), *c.FollowedAt, c.ID), nil
 	case dtos.SortReviewsCount:
 		if c.ReviewsCount == nil {
 			return q, cursor.ErrInvalidCursor

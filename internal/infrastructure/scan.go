@@ -56,7 +56,11 @@ func scanUser(row pgx.Row, user *entities.User) error {
 	)
 }
 
-var UserCardRowCols = []string {
+// userCardBaseCols are the static columns of a catalog row. The two follow-edge
+// columns (is_followed, followed_at) depend on which joins the query has, so the
+// repository appends them per query; scanUserCardRow expects them in the order
+// base..., is_followed, u.created_at, followed_at.
+var userCardBaseCols = []string {
 	"u.id",
 	"u.username",
 	"u.display_name",
@@ -68,9 +72,6 @@ var UserCardRowCols = []string {
 	"u.sessions_hosted",
 	"u.preferred_format",
 	"u.preferred_type",
-	"(f.followed_id IS NOT NULL) AS is_followed",
-	"u.created_at",
-	"f.created_at AS followed_at",
 }
 
 func scanUserCardRow(row pgx.Row, user *UserCardRow) error {

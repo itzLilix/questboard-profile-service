@@ -257,6 +257,11 @@ paths:
   /internal/briefs:
     get:
       parameters:
+      - description: Internal service token
+        in: header
+        name: X-Internal-Token
+        required: true
+        type: string
       - description: Comma-separated user IDs
         in: query
         name: ids
@@ -273,6 +278,10 @@ paths:
             type: array
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/internal_handlers.ErrorResponse'
         "500":
@@ -372,7 +381,7 @@ paths:
       tags:
       - auth
   /v1/auth/refresh:
-    get:
+    post:
       produces:
       - application/json
       responses:
@@ -582,6 +591,31 @@ paths:
       tags:
       - users
   /v1/users/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.PrivateProfileData'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handlers.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Get my profile
+      tags:
+      - users
     patch:
       consumes:
       - application/json

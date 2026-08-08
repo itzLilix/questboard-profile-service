@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/itzLilix/questboard-profile-service/internal/config"
 	"github.com/itzLilix/questboard-profile-service/internal/usecase"
@@ -19,13 +21,11 @@ type authHandler struct {
 	cfg     *config.Config
 }
 
-// LoginRequest is the body for POST /v1/auth/login.
 type LoginRequest struct {
 	Email    string `json:"email"    example:"user@example.com"`
 	Password string `json:"password" example:"Secret123!"`
 }
 
-// SignupRequest is the body for POST /v1/auth/signup.
 type SignupRequest struct {
 	Username    string `json:"username"    example:"johndoe"`
 	DisplayName string `json:"displayName" example:"John Doe"`
@@ -39,6 +39,8 @@ type authResponse = dtos.PrivateProfileData
 const (
 	accessCookie  = "access_token"
 	refreshCookie = "refresh_token"
+	
+	refreshCookiePath = "/v1/auth"
 )
 
 func NewAuthHandler(usecase AuthUsecase, log zerolog.Logger, cfg *config.Config) AuthHandler {
@@ -51,7 +53,7 @@ func (h *authHandler) RegisterRoutes(router fiber.Router) {
 	auth.Post("/signup", h.signup)
 	auth.Post("/logout", h.logout)
 	auth.Get("/activate/:link", h.activate)
-	auth.Get("/refresh", h.refresh)
+	auth.Post("/refresh", h.refresh)
 }
 
 // @summary      Login
@@ -132,21 +134,28 @@ func (h *authHandler) activate(c fiber.Ctx) error {
 // @produce      json
 // @success      200  {object}  authResponse
 // @failure      401  {object}  ErrorResponse
-// @router       /v1/auth/refresh [get]
+// @router       /v1/auth/refresh [post]
 func (h *authHandler) refresh(c fiber.Ctx) error {
-	oldRefreshToken := c.Cookies("refresh_token")
+	oldRefreshToken := c.Cookies(refreshCookie)
 	if oldRefreshToken == "" {
+		h.clearAuthCookies(c)
 		return handleErr(c, usecase.ErrInvalidToken)
 	}
 	user, accessToken, refreshToken, err := h.usecase.RefreshTokens(c.Context(), oldRefreshToken)
 	if err != nil {
 		h.log.Warn().Err(err).Msg("token refresh failed")
+		if errors.Is(err, usecase.ErrInvalidToken) || errors.Is(err, usecase.ErrUserNotFound) {
+			h.clearAuthCookies(c)
+		}
 		return handleErr(c, err)
 	}
 	h.setAuthCookies(c, accessToken, refreshToken)
 	return c.Status(fiber.StatusOK).JSON(user)
 }
 
+// setAuthCookies issues persistent cookies whose MaxAge mirrors the lifetime
+// of the token inside, so the browser drops them exactly when they go stale.
+// Login persistence is therefore RefreshTTL, regardless of browser restarts.
 func (h *authHandler) setAuthCookies(c fiber.Ctx, accessToken, refreshToken string) {
 	c.Cookie(&fiber.Cookie{
 		Name:     accessCookie,
@@ -159,7 +168,8 @@ func (h *authHandler) setAuthCookies(c fiber.Ctx, accessToken, refreshToken stri
 	c.Cookie(&fiber.Cookie{
 		Name:     refreshCookie,
 		Value:    refreshToken,
-		Path:     "/",
+		Path:     refreshCookiePath,
+		MaxAge:   int(h.cfg.RefreshTTL.Seconds()),
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Strict",
@@ -179,7 +189,7 @@ func (h *authHandler) clearAuthCookies(c fiber.Ctx) {
 	c.Cookie(&fiber.Cookie{
 		Name:     refreshCookie,
 		Value:    "",
-		Path:     "/",
+		Path:     refreshCookiePath,
 		Expires:  fasthttp.CookieExpireDelete,
 		HTTPOnly: true,
 		Secure:   true,

@@ -67,9 +67,7 @@ func TestAuthUsecase_Register_HashError(t *testing.T) {
 
 func TestAuthUsecase_Register_InvalidUsername(t *testing.T) {
 	ctx := context.Background()
-	uc, m := newAuthUC(t)
-
-	m.hasher.EXPECT().HashPassword("pw").Return("hash", nil)
+	uc, _ := newAuthUC(t)
 
 	_, _, _, err := uc.Register(ctx, "bad name!", "John", "john@example.com", "pw")
 	assert.ErrorIs(t, err, ErrInvalidData)
@@ -77,9 +75,7 @@ func TestAuthUsecase_Register_InvalidUsername(t *testing.T) {
 
 func TestAuthUsecase_Register_InvalidEmail(t *testing.T) {
 	ctx := context.Background()
-	uc, m := newAuthUC(t)
-
-	m.hasher.EXPECT().HashPassword("pw").Return("hash", nil)
+	uc, _ := newAuthUC(t)
 
 	_, _, _, err := uc.Register(ctx, "john", "John", "not-an-email", "pw")
 	assert.ErrorIs(t, err, ErrInvalidData)
@@ -87,9 +83,7 @@ func TestAuthUsecase_Register_InvalidEmail(t *testing.T) {
 
 func TestAuthUsecase_Register_InvalidDisplayName(t *testing.T) {
 	ctx := context.Background()
-	uc, m := newAuthUC(t)
-
-	m.hasher.EXPECT().HashPassword("pw").Return("hash", nil)
+	uc, _ := newAuthUC(t)
 
 	_, _, _, err := uc.Register(ctx, "john", "", "john@example.com", "pw")
 	assert.ErrorIs(t, err, ErrInvalidData)
